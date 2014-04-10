@@ -85,7 +85,7 @@ module OmniAuth
         opts = {
           response_type: options.response_type,
           scope: options.scope,
-          nonce: (nonce if send_nonce),
+          nonce: (nonce if options.send_nonce),
         }
         client.authorization_uri(opts.reject { |_,v| v.nil? })
       end
@@ -106,7 +106,7 @@ module OmniAuth
       end
 
       def access_token
-        @access_token ||= client.access_token!(:client_auth_method => client_auth_method)
+        @access_token ||= client.access_token!(:client_auth_method => options.client_auth_method)
       end
 
       def client_options
