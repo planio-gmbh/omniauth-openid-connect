@@ -34,10 +34,31 @@ config.omniauth :openid_connect, {
     host: "myprovider.com",
     identifier: ENV["OP_CLIENT_ID"],
     secret: ENV["OP_SECRET_KEY"],
-    redirect_uri: "http://myapp.com/users/auth/openid_connect/callback",
+    redirect_uri: "http://myapp.com/auth/my_provider/callback",
   },
 }
 ```
+
+Example configuration for Google authentication:
+```ruby
+config.omniauth :openid_connect, {
+  name: :google,
+  scope: [:openid, :email, :profile],
+  client_auth_method: :not_basic, # Google does not support basic auth
+  send_nonce: false,              # requests with a nonce a rejected by Google
+  client_options: {
+    identifier: ENV["OP_CLIENT_ID"],
+    secret: ENV["OP_SECRET_KEY"],
+    redirect_uri: "http://myapp.com/auth/google/callback",
+
+    host: "accounts.google.com",
+    authorization_endpoint: "/o/oauth2/auth",
+    token_endpoint: "/o/oauth2/token",
+    userinfo_endpoint: "https://www.googleapis.com/plus/v1/people/me/openIdConnect"
+  },
+}
+```
+
 
 Configuration details:
   * `name` is arbitrary, I recommend using the name of your provider. The name
