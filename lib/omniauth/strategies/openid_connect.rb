@@ -65,6 +65,10 @@ module OmniAuth
       end
 
       def callback_phase
+        if !session["state"].nil? && session["state"] != request.params["state"]
+          return Rack::Response.new(['401 Unauthorized'], 401).finish
+        end
+
         client.redirect_uri = client_options.redirect_uri
         client.authorization_code = authorization_code
         access_token
@@ -83,6 +87,7 @@ module OmniAuth
           response_type: options.response_type,
           scope: options.scope,
           nonce: (nonce if options.send_nonce),
+          state: (session["state"] = options.state.call if options.state.respond_to? :call)
         }
         client.authorization_uri(opts.reject { |_,v| v.nil? })
       end
