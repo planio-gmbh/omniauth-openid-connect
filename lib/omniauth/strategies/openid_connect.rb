@@ -108,6 +108,7 @@ module OmniAuth
         if user_info.email_verified.is_a? String
           user_info.email_verified = (user_info.email_verified == "true")
         end
+        user_info.gender = nil # in case someone picks something else than male or female, we don't need it anyway
         user_info
       end
 
