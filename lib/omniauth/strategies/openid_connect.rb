@@ -86,7 +86,6 @@ module OmniAuth
 
       def authorize_uri
         client.redirect_uri = client_options.redirect_uri
-
         opts = {
           response_type: options.response_type,
           scope: options.scope,
