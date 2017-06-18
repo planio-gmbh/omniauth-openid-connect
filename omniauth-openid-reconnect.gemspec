@@ -20,7 +20,7 @@ Gem::Specification.new do |spec|
 
   spec.add_dependency 'activesupport', '>= 0'
   spec.add_dependency 'omniauth', '~> 1.1'
-  spec.add_dependency 'openid_connect', '= 0.7.3'
+  spec.add_dependency 'openid_connect', '= 1.1.2'
   spec.add_dependency 'addressable', '~> 2.2.8' # Because there is a breaking change in 2.2.9 with the wail rails param arrays are handled
   spec.add_development_dependency 'bundler', '~> 1.5'
   spec.add_development_dependency 'minitest', '~> 5.4'
