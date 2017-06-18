@@ -1,6 +1,6 @@
 require_relative '../../../test_helper'
 
-class OmniAuth::Strategies::OpenIDConnectTest < StrategyTestCase
+class OmniAuth::Strategies::OpenIDReconnectTest < StrategyTestCase
   def test_client_options_defaults
     assert_equal "https", strategy.options.client_options.scheme
     assert_equal 443, strategy.options.client_options.port
@@ -9,7 +9,7 @@ class OmniAuth::Strategies::OpenIDConnectTest < StrategyTestCase
   end
 
   def test_request_phase
-    expected_redirect = /^https:\/\/example\.com\/authorize\?client_id=1234&response_type=code&scope=openid$/
+    expected_redirect = /^https:\/\/example\.com\/authorize\?client_id=1234&nonce=[\w\d]{32}&response_type=code&scope=openid$/
     strategy.options.client_options.host = "example.com"
     strategy.expects(:redirect).with(regexp_matches(expected_redirect))
     strategy.request_phase
@@ -25,7 +25,7 @@ class OmniAuth::Strategies::OpenIDConnectTest < StrategyTestCase
     request.stubs(:path_info).returns("")
 
     strategy.unstub(:user_info)
-    access_token = stub('OpenIDConnect::AccessToken')
+    access_token = stub('OpenIDReconnect::AccessToken')
     access_token.stubs(:access_token)
     client.expects(:access_token!).returns(access_token)
     access_token.expects(:userinfo!).returns(user_info)
@@ -52,7 +52,7 @@ class OmniAuth::Strategies::OpenIDConnectTest < StrategyTestCase
   end
 
   def test_credentials
-    access_token = stub('OpenIDConnect::AccessToken')
+    access_token = stub('OpenIDReconnect::AccessToken')
     access_token.stubs(:access_token).returns(SecureRandom.hex(16))
     client.expects(:access_token!).returns(access_token)
 
@@ -82,7 +82,7 @@ class OmniAuth::Strategies::OpenIDConnectTest < StrategyTestCase
       {:grant_type => :client_credentials, :client_id => @identifier, :client_secret => @secret},
       {}
     ).returns(success)
-    OpenIDConnect::Client.any_instance.stubs(:handle_success_response).with(success).returns(true)
+    OpenIDReconnect::Client.any_instance.stubs(:handle_success_response).with(success).returns(true)
 
     assert(strategy.send :access_token)
   end

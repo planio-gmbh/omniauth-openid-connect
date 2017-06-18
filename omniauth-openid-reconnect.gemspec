@@ -9,7 +9,7 @@ Gem::Specification.new do |spec|
   spec.authors       = ["Paul Scarrone","John Bohn"]
   spec.email         = ["paul.scarrone@gmail.com","jjbohn@gmail.com"]
   spec.summary       = %q{OpenID Connect Strategy MK2 for OmniAuth}
-  spec.description   = %q{OpenID Connect Strategy MK2 for OmniAuth which is fully compliant with devise and rails and currently maintained. Derived from jjbohn's work but actively maintained}
+  spec.description   = %q{OpenID Connect Strategy MK2 for OmniAuth which is fully compliant with devise and rails and currently maintained. Derived from jjbohn's work which is not actively maintained}
   spec.homepage      = "https://github.com/thinkthroughmath/omniauth-openid-reconnect"
   spec.license       = "MIT"
 

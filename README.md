@@ -11,7 +11,7 @@ This is derrived work from `jjbohn/omniauth-openid-connect` which appears to be 
 
 ### Whats different.
 
-- Using Addressable 2.8 - At 2.9 `addressable` decided that the way that Rails 3 handles param[] items was too hard to handle and removed the feature. This breaking change within a semantic version makes using `addressable-3.0` difficult in existing applications. There is no impact on the auth strategy though.
+- Using Addressable 2.2.8 - In 2.3+ `addressable` decided that the way that Rails 3 handles param[] items was too hard to handle and removed the feature. This breaking change within a semantic version makes using addressable > 2.3 difficult in existing applications. There is no impact on the auth strategy though.
 - Better devise support be returning a default `name` options parameter
 - Partial integration of google `nonce` requirement.
 - Inclusing of aging PRs from the parent gem this replaces.
@@ -20,7 +20,7 @@ This is derrived work from `jjbohn/omniauth-openid-connect` which appears to be 
 
 Add this line to your application's Gemfile:
 
-    gem 'omniauth-openid-connect'
+    gem 'omniauth-openid-reconnect'
 
 And then execute:
 
@@ -28,7 +28,7 @@ And then execute:
 
 Or install it yourself as:
 
-    $ gem install omniauth-openid-connect
+    $ gem install omniauth-openid-reconnect
 
 ## Usage
 
@@ -48,8 +48,6 @@ config.omniauth :openid_connect, {
 }
 ```
 
-Initialized for login is `/auth/OpenIDConnect`
-
 Configuration details:
   * `name` is an optional requirement as of `omniauth-1.2` but it does have an effect with dealing with devise and is the base for which devise uses to create routes identified with `devise_for`. The default is set to the expected camelization of `openid_connect`. If you need to override it you can pass the `name` parameter to the config hash. **Be aware** that what you set this to will be the provider for your devise routes.
   * Although `response_type` is an available option, currently, only `:code`
@@ -62,7 +60,7 @@ For the full low down on OpenID Connect, please check out
 
 ## Contributing
 
-1. Fork it ( http://github.com/thinkthroughmath/omniauth-openid-connect/fork )
+1. Fork it ( http://github.com/thinkthroughmath/omniauth-openid-reconnect/fork )
 2. Create your feature branch (`git checkout -b my-new-feature`)
 3. Commit your changes (`git commit -am 'Add some feature'`)
 4. Push to the branch (`git push origin my-new-feature`)
