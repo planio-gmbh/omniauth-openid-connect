@@ -156,10 +156,15 @@ module OmniAuth
 
       def access_token
         @access_token ||= lambda {
-          _access_token = client.access_token!(
-          scope: (options.scope if options.send_scope_to_token_endpoint),
-          client_auth_method: options.client_auth_method
-          )
+          begin
+            configure_http_client_ssl if client_options.ssl.certificate.present? && client_options.ssl.private_key.present?
+            _access_token = client.access_token!(
+            scope: (options.scope if options.send_scope_to_token_endpoint),
+            client_auth_method: options.client_auth_method
+            )
+          ensure
+            reset_http_client
+          end
           _id_token = decode_id_token _access_token.id_token
           _id_token.verify!(
               issuer: options.issuer,
@@ -170,10 +175,20 @@ module OmniAuth
         }.call()
       end
 
+      def configure_http_client_ssl
+        Rack::OAuth2.http_config do |http_client|
+          http_client.ssl_config.client_cert = client_options.ssl.certificate
+          http_client.ssl_config.client_key = client_options.ssl.private_key
+        end
+      end
+
+      def reset_http_client
+        Rack::OAuth2.reset_http_config!
+      end
+
       def decode_id_token(id_token)
         ::OpenIDConnect::ResponseObject::IdToken.decode(id_token, public_key)
       end
-
 
       def client_options
         options.client_options
