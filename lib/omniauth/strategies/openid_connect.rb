@@ -24,6 +24,7 @@ module OmniAuth
       }
       option :issuer
       option :discovery, false
+      option :discovery_cache_options, {}
       option :client_signing_alg
       option :client_jwk_signing_key
       option :client_x509_signing_key
@@ -79,7 +80,10 @@ module OmniAuth
       end
 
       def config
-        @config ||= ::OpenIDConnect::Discovery::Provider::Config.discover!(options.issuer)
+        @config ||= ::OpenIDConnect::Discovery::Provider::Config.discover!(
+          options.issuer,
+          options.discovery_cache_options&.symbolize_keys
+        )
       end
 
       def request_phase
@@ -145,7 +149,10 @@ module OmniAuth
 
       def issuer
         resource = "#{client_options.scheme}://#{client_options.host}" + ((client_options.port) ? ":#{client_options.port.to_s}" : '')
-        ::OpenIDConnect::Discovery::Provider.discover!(resource).issuer
+        ::OpenIDConnect::Discovery::Provider.discover!(
+          resource,
+          options.discovery_cache_options&.symbolize_keys
+        ).issuer
       end
 
       def discover!
