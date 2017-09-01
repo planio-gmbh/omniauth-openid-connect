@@ -21,9 +21,10 @@ Gem::Specification.new do |spec|
 
   spec.add_dependency 'activesupport', '>= 0'
   spec.add_dependency 'omniauth', '~> 1.2'
-  spec.add_dependency 'openid_connect', '~> 1.1.2'
-  spec.add_dependency 'addressable', '~> 2.4.0' # 2.5から依存パッケージが増加.
+  spec.add_dependency 'openid_connect', '~> 1.1.3'
+  spec.add_dependency 'addressable', '~> 2.4'
   spec.add_dependency 'jwt', '= 1.5.2'
+
   spec.add_development_dependency "bundler", "~> 1.5"
   spec.add_development_dependency "minitest"
   spec.add_development_dependency "mocha"
