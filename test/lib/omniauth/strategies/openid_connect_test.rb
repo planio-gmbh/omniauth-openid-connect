@@ -10,7 +10,7 @@ class OmniAuth::Strategies::OpenIDConnectTest < StrategyTestCase
 
   def test_request_phase
     expected_redirect = /^https:\/\/example\.com\/authorize\?client_id=1234&nonce=[\w\d]{32}&response_type=code&scope=openid&state=[\w\d]{32}$/
-    strategy.options.issuer = 'example.com'
+    strategy.options.issuer = 'https://example.com'
     strategy.options.client_options.host = 'example.com'
     strategy.expects(:redirect).with(regexp_matches(expected_redirect))
     strategy.request_phase
@@ -46,7 +46,7 @@ class OmniAuth::Strategies::OpenIDConnectTest < StrategyTestCase
   def test_request_phase_with_prompt
     expected_redirect = /^https:\/\/example\.com\/authorize\?client_id=1234&nonce=[\w\d]{32}&prompt=login%2Cselect_account&response_type=code&scope=openid&state=[\w\d]{32}$/
     strategy.options.prompt = 'login,select_account'
-    strategy.options.issuer = 'example.com'
+    strategy.options.issuer = 'https://example.com'
     strategy.options.client_options.host = 'example.com'
     strategy.expects(:redirect).with(regexp_matches(expected_redirect))
     strategy.request_phase
@@ -56,7 +56,7 @@ class OmniAuth::Strategies::OpenIDConnectTest < StrategyTestCase
     expected_redirect = /^https:\/\/example\.com\/authorize\?client_id=1234&id_token_hint=insert_valid_id_token_here&nonce=[\w\d]{32}&prompt=login&response_type=code&scope=openid&state=[\w\d]{32}$/
     strategy.options.prompt = 'login'
     strategy.options.id_token_hint = 'insert_valid_id_token_here'
-    strategy.options.issuer = 'example.com'
+    strategy.options.issuer = 'https://example.com'
     strategy.options.client_options.host = 'example.com'
     strategy.expects(:redirect).with(regexp_matches(expected_redirect))
     strategy.request_phase
@@ -65,7 +65,7 @@ class OmniAuth::Strategies::OpenIDConnectTest < StrategyTestCase
   def test_request_phase_with_ux
     expected_redirect = /^https:\/\/example\.com\/authorize\?client_id=1234&nonce=[\w\d]{32}&response_type=code&scope=openid&state=[\w\d]{32}&ux=signup%2Ccustom_message$/
     strategy.options.ux = 'signup,custom_message'
-    strategy.options.issuer = 'example.com'
+    strategy.options.issuer = 'https://example.com'
     strategy.options.client_options.host = 'example.com'
     strategy.expects(:redirect).with(regexp_matches(expected_redirect))
     strategy.request_phase
@@ -82,9 +82,9 @@ class OmniAuth::Strategies::OpenIDConnectTest < StrategyTestCase
     request.stubs(:params).returns({'code' => code,'state' => state})
     request.stubs(:path_info).returns('')
 
-    strategy.options.issuer = 'example.com'
+    strategy.options.issuer = 'http://example.com'
     strategy.options.client_signing_alg = :RS256
-    strategy.options.client_jwk_signing_key = File.read('test/fixtures/jwks.json')
+    strategy.options.client_jwk_signing_key = JSON.parse(File.read('test/fixtures/jwks.json'))
 
     id_token = stub('OpenIDConnect::ResponseObject::IdToken')
     id_token.stubs(:verify!).with({:issuer => strategy.options.issuer, :client_id => @identifier, :nonce => nonce}).returns(true)
@@ -180,7 +180,7 @@ class OmniAuth::Strategies::OpenIDConnectTest < StrategyTestCase
     request.stubs(:params).returns({'code' => code,'state' => state})
     request.stubs(:path_info).returns('')
 
-    strategy.options.issuer = 'example.com'
+    strategy.options.issuer = 'http://example.com'
 
     strategy.stubs(:access_token).raises(::Timeout::Error.new('error'))
     strategy.call!({'rack.session' => {'omniauth.state' => state, 'omniauth.nonce' => nonce}})
@@ -195,7 +195,7 @@ class OmniAuth::Strategies::OpenIDConnectTest < StrategyTestCase
     request.stubs(:params).returns({'code' => code,'state' => state})
     request.stubs(:path_info).returns('')
 
-    strategy.options.issuer = 'example.com'
+    strategy.options.issuer = 'http://example.com'
 
     strategy.stubs(:access_token).raises(::Errno::ETIMEDOUT.new('error'))
     strategy.call!({'rack.session' => {'omniauth.state' => state, 'omniauth.nonce' => nonce}})
@@ -210,7 +210,7 @@ class OmniAuth::Strategies::OpenIDConnectTest < StrategyTestCase
     request.stubs(:params).returns({'code' => code,'state' => state})
     request.stubs(:path_info).returns('')
 
-    strategy.options.issuer = 'example.com'
+    strategy.options.issuer = 'http://example.com'
 
     strategy.stubs(:access_token).raises(::SocketError.new('error'))
     strategy.call!({'rack.session' => {'omniauth.state' => state, 'omniauth.nonce' => nonce}})
@@ -236,7 +236,7 @@ class OmniAuth::Strategies::OpenIDConnectTest < StrategyTestCase
   end
 
   def test_credentials
-    strategy.options.issuer = 'example.com'
+    strategy.options.issuer = 'http://example.com'
     strategy.options.client_signing_alg = :RS256
     strategy.options.client_jwk_signing_key = File.read('test/fixtures/jwks.json')
 
@@ -284,12 +284,13 @@ class OmniAuth::Strategies::OpenIDConnectTest < StrategyTestCase
     assert(result[1]["Location"] =~ /\/auth\/failure/)
   end
 
+
   def test_state
     strategy.options.state = lambda { 42 }
     session = { "state" => 42 }
 
     expected_redirect = /&state=/
-    strategy.options.issuer = 'example.com'
+    strategy.options.issuer = 'http://example.com'
     strategy.options.client_options.host = "example.com"
     strategy.expects(:redirect).with(regexp_matches(expected_redirect))
     strategy.request_phase
@@ -310,19 +311,6 @@ class OmniAuth::Strategies::OpenIDConnectTest < StrategyTestCase
   end
 
 
-  def test_failure_endpoint_redirect
-    OmniAuth.config.stubs(:failure_raise_out_environments).returns([])
-    strategy.stubs(:env).returns({})
-    request.stubs(:params).returns({"error" => "access denied"})
-
-    result = strategy.callback_phase
-
-    assert(result.is_a? Array)
-    assert(result[0] == 302, "Redirect")
-    assert(result[1]["Location"] =~ /\/auth\/failure/)
-  end
-
-
   def test_option_client_auth_method
     code = SecureRandom.hex(16)
     state = SecureRandom.hex(16)
@@ -330,7 +318,7 @@ class OmniAuth::Strategies::OpenIDConnectTest < StrategyTestCase
 
     opts = strategy.options.client_options
     opts[:host] = "foobar.com"
-    strategy.options.issuer = "foobar.com"
+    strategy.options.issuer = "http://foobar.com"
     strategy.options.client_auth_method = :not_basic
     strategy.options.client_signing_alg = :RS256
     strategy.options.client_jwk_signing_key = File.read('test/fixtures/jwks.json')
@@ -365,12 +353,13 @@ class OmniAuth::Strategies::OpenIDConnectTest < StrategyTestCase
     assert_equal JSON::JWK::Set, strategy.public_key.class
   end
 
+  
   def test_public_key_with_jwk
     strategy.options.client_signing_alg = :RS256
     jwks_str = File.read('./test/fixtures/jwks.json')
     jwks = JSON.parse(jwks_str)
     jwk = jwks['keys'].first
-    strategy.options.client_jwk_signing_key = jwk.to_json
+    strategy.options.client_jwk_signing_key = jwk # .to_json
 
     assert_equal JSON::JWK, strategy.public_key.class
   end

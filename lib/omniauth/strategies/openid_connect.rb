@@ -13,8 +13,11 @@ module OmniAuth
     class OpenIDConnect
       include OmniAuth::Strategy
 
+      # OpenIDConnect::Client.new() に渡される.
       option :client_options, {
+        # 必須       
         identifier: nil,
+        # 任意
         secret: nil,
         redirect_uri: nil,
         scheme: "https",
@@ -23,8 +26,11 @@ module OmniAuth
         authorization_endpoint: "/authorize",
         token_endpoint: "/token",
         userinfo_endpoint: "/userinfo",
-        jwks_uri: '/jwk'
+        # jwks_uri: '/jwk'   # これはない.
+        expires_in: nil
       }
+      # 指定しなかった場合は, client_options.{scheme, host, port} から,
+      # discover!().issuer で作られる.
       option :issuer
       option :discovery, false
       option :discovery_cache_options, {}
@@ -86,6 +92,9 @@ module OmniAuth
 
       
       def config
+        raise ArgumentError unless (uri = URI.parse(options.issuer)) &&
+                                (uri.scheme == 'http' || uri.scheme == 'https')
+        
         @config ||= ::OpenIDConnect::Discovery::Provider::Config.discover!(
           options.issuer,
           options.discovery_cache_options&.symbolize_keys
@@ -192,7 +201,7 @@ module OmniAuth
       def access_token
         @access_token ||= lambda {
           begin
-            configure_http_client_ssl if client_options.ssl.certificate.present? && client_options.ssl.private_key.present?
+            #configure_http_client_ssl if client_options.ssl.certificate.present? && client_options.ssl.private_key.present?
             _access_token = client.access_token!(
             scope: (options.scope if options.send_scope_to_token_endpoint),
             client_auth_method: options.client_auth_method
@@ -215,7 +224,8 @@ module OmniAuth
         }.call()
       end
 
-
+      
+=begin
       def configure_http_client_ssl
         # http_client は HTTPClient 型
         Rack::OAuth2.http_config do |http_client|
@@ -225,7 +235,8 @@ module OmniAuth
           http_client.ssl_config.client_key = client_options.ssl.private_key
         end
       end
-
+=end
+      
       def reset_http_client
         Rack::OAuth2.reset_http_config!
       end
@@ -268,7 +279,7 @@ module OmniAuth
 
           when :RS256, :RS384, :RS512
             if options.client_jwk_signing_key
-              return parse_jwk_key(options.client_jwk_signing_key.to_hash)
+              return parse_jwk_key(options.client_jwk_signing_key)
             elsif options.client_x509_signing_key
               return parse_x509_key(options.client_x509_signing_key)
             end
@@ -284,8 +295,17 @@ module OmniAuth
         OpenSSL::X509::Certificate.new(key).public_key
       end
 
+
+      # @param [String or Hash] key JSON形式の文字列, またはハッシュ.
       def parse_jwk_key(key)
-        json = JSON.parse(key)
+        if key.is_a?(String)
+          json = JSON.parse(key)
+        elsif key.is_a?(Hash)
+          json = key
+        else
+          raise TypeError, "key was #{key.class}, #{key.inspect}" 
+        end
+
         if json.has_key?('keys')
           JSON::JWK::Set.new json['keys']
         else
