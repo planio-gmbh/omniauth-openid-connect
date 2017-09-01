@@ -16,7 +16,7 @@ module OmniAuth
         redirect_uri: nil,
         scheme: "https",
         host: nil,
-        port: 443,
+        port: nil,
         authorization_endpoint: "/authorize",
         token_endpoint: "/token",
         userinfo_endpoint: "/userinfo",
@@ -82,6 +82,11 @@ module OmniAuth
       end
 
       def request_phase
+        if client_options.scheme == "http"
+          WebFinger.url_builder = URI::HTTP
+          SWD.url_builder = URI::HTTP
+        end
+
         options.issuer = issuer if options.issuer.blank?
         discover! if options.discovery
         redirect authorize_uri
@@ -124,7 +129,17 @@ module OmniAuth
             state: new_state,
             nonce: (new_nonce if options.send_nonce),
             hd: options.hd,
+            prompt: options.prompt
         }
+        if request.params['email']
+          opts[:email] = request.params['email']
+        end
+        if request.params['realm']
+          opts[:realm] = request.params['realm']
+        end
+        if request.params['cid']
+          opts[:cid] = request.params['cid']
+        end
         client.authorization_uri(opts.reject{|k,v| v.nil?})
       end
 
