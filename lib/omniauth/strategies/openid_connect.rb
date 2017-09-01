@@ -169,7 +169,7 @@ module OmniAuth
         end
       end
 
-      private
+    private ##############################################
 
       def issuer
         resource = "#{client_options.scheme}://#{client_options.host}" + ((client_options.port) ? ":#{client_options.port.to_s}" : '')
@@ -217,8 +217,11 @@ module OmniAuth
 
 
       def configure_http_client_ssl
+        # http_client は HTTPClient 型
         Rack::OAuth2.http_config do |http_client|
+          # OpenSSL::X509::Certificate
           http_client.ssl_config.client_cert = client_options.ssl.certificate
+          # OpenSSL::PKey::PKey
           http_client.ssl_config.client_key = client_options.ssl.private_key
         end
       end
@@ -298,9 +301,9 @@ module OmniAuth
         key.e = exponent
         key.n = modulus
         key
-=end
       end
-
+=end
+      
       def decode(str)
         UrlSafeBase64.decode64(str).unpack('B*').first.to_i(2).to_s
       end

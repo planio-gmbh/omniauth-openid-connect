@@ -2,8 +2,8 @@ require 'simplecov'
 SimpleCov.command_name 'test'
 SimpleCov.start
 
-require 'coveralls'
-Coveralls.wear!
+#require 'coveralls'
+#Coveralls.wear!
 
 require 'minitest/autorun'
 require 'mocha/mini_test'
