@@ -27,6 +27,7 @@ module OmniAuth
       }
       option :issuer
       option :discovery, false
+      option :discovery_cache_options, {}
       option :client_signing_alg
       option :client_jwk_signing_key
       option :client_x509_signing_key
@@ -47,6 +48,7 @@ module OmniAuth
       option :send_nonce, true
       option :send_scope_to_token_endpoint, true
       option :client_auth_method
+      option :ux
 
       uid { user_info.sub }
 
@@ -82,9 +84,12 @@ module OmniAuth
         @client ||= ::OpenIDConnect::Client.new(client_options)
       end
 
+      
       def config
-        @config ||= ::OpenIDConnect::Discovery::Provider::Config.discover!(options.issuer)
-
+        @config ||= ::OpenIDConnect::Discovery::Provider::Config.discover!(
+          options.issuer,
+          options.discovery_cache_options&.symbolize_keys
+        )
         return @config
       end
 
@@ -137,7 +142,10 @@ module OmniAuth
             state: new_state,
             nonce: (new_nonce if options.send_nonce),
             hd: options.hd,
-            prompt: options.prompt
+            prompt: options.prompt,
+            id_token_hint: options.id_token_hint,
+            login_hint: options.login_hint,
+            ux: options.ux,
         }
         if request.params['email']
           opts[:email] = request.params['email']
@@ -166,6 +174,7 @@ module OmniAuth
       def issuer
         resource = "#{client_options.scheme}://#{client_options.host}" + ((client_options.port) ? ":#{client_options.port.to_s}" : '')
 
+        # 引数は identifier 一つだけ.
         ::OpenIDConnect::Discovery::Provider.discover!(resource).issuer
       end
 
