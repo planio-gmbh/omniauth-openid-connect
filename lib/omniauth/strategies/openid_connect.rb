@@ -1,3 +1,5 @@
+# -*- coding:utf-8 -*-
+
 require 'addressable/uri'
 require 'timeout'
 require 'net/http'
@@ -28,6 +30,8 @@ module OmniAuth
       option :client_signing_alg
       option :client_jwk_signing_key
       option :client_x509_signing_key
+
+      option :name, nil  # 必須. こちらが provider 名になる
       option :scope, [:openid]
       option :response_type, "code"
       option :state
@@ -222,6 +226,7 @@ module OmniAuth
       def client_options
         options.client_options
       end
+
 
       def new_state
         state = options.state.call if options.state.respond_to? :call

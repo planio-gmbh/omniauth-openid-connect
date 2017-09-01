@@ -11,7 +11,9 @@ require 'faker'
 require 'active_support'
 require_relative '../lib/omniauth-openid-connect'
 
+
 OmniAuth.config.test_mode = true
+OmniAuth.config.logger = Logger.new('/dev/null')
 
 class StrategyTestCase < MiniTest::Test
   class DummyApp

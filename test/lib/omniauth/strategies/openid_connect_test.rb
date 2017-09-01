@@ -16,6 +16,7 @@ class OmniAuth::Strategies::OpenIDConnectTest < StrategyTestCase
     strategy.request_phase
   end
 
+  
   def test_request_phase_with_discovery
     expected_redirect = /^https:\/\/example\.com\/authorization\?client_id=1234&nonce=[\w\d]{32}&response_type=code&scope=openid&state=[\w\d]{32}$/
     strategy.options.client_options.host = 'example.com'
@@ -74,6 +75,7 @@ class OmniAuth::Strategies::OpenIDConnectTest < StrategyTestCase
     strategy.call!({'rack.session' => {'omniauth.state' => state, 'omniauth.nonce' => nonce}})
     strategy.callback_phase
   end
+
 
   def test_callback_phase_with_discovery
     code = SecureRandom.hex(16)
@@ -279,6 +281,20 @@ class OmniAuth::Strategies::OpenIDConnectTest < StrategyTestCase
     assert result.first == 401, "Expecting unauthorized"
   end
 
+
+  def test_failure_endpoint_redirect
+    OmniAuth.config.stubs(:failure_raise_out_environments).returns([])
+    strategy.stubs(:env).returns({})
+    request.stubs(:params).returns({"error" => "access denied"})
+
+    result = strategy.callback_phase
+
+    assert(result.is_a? Array)
+    assert(result[0] == 302, "Redirect")
+    assert(result[1]["Location"] =~ /\/auth\/failure/)
+  end
+
+
   def test_option_client_auth_method
     code = SecureRandom.hex(16)
     state = SecureRandom.hex(16)
@@ -309,6 +325,7 @@ class OmniAuth::Strategies::OpenIDConnectTest < StrategyTestCase
       {scope: 'openid', :grant_type => :client_credentials, :client_id => @identifier, :client_secret => @secret},
       {}
     ).returns(success)
+    #OpenIDConnect::Client.any_instance.stubs(:handle_success_response).with(success).returns(true)
 
     assert(strategy.send :access_token)
   end
