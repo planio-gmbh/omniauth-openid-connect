@@ -139,15 +139,17 @@ module OmniAuth
       end
 
       credentials do
-        return {} if !access_token
-          
-        return {
+        if !access_token
+          {} 
+        else
+          {
             id_token: access_token.id_token,
             token: access_token.access_token,
             refresh_token: access_token.refresh_token,
             expires_in: access_token.expires_in,
             scope: access_token.scope
-        }
+          }
+        end
       end
 
 
@@ -285,6 +287,9 @@ module OmniAuth
         client_options.token_endpoint = config.token_endpoint
         client_options.userinfo_endpoint = config.userinfo_endpoint
         client_options.jwks_uri = config.jwks_uri
+
+        client.token_endpoint = config.token_endpoint
+        client.userinfo_endpoint = config.userinfo_endpoint
       end
 
       # @override
@@ -305,12 +310,16 @@ module OmniAuth
         # これはメソッド呼び出し. See Rack::OAuth2::Client
         client.authorization_code = request.params.delete('code')
 
+        # なぜか, callback_phase でも discover! が必要.
+        options.issuer = issuer() if options.issuer.blank?
+        discover! if options.discovery
+        
         # token_endpoint に対して http request を行う.
         _access_token = client.access_token!(
             scope: (options.scope if options.send_scope_to_token_endpoint),
             client_auth_method: options.client_auth_method
             )
-
+        
         header = ::JWT.decoded_segments(_access_token.id_token, false).try(:[],0)
         kid = header["kid"]
         key = public_key(kid)
