@@ -3,7 +3,7 @@ require_relative '../../../test_helper'
 class OmniAuth::Strategies::OpenIDConnectTest < StrategyTestCase
   def test_client_options_defaults
     assert_equal 'https', strategy.options.client_options.scheme
-    assert_equal 443, strategy.options.client_options.port
+    assert_equal nil, strategy.options.client_options.port
     assert_equal '/authorize', strategy.options.client_options.authorization_endpoint
     assert_equal '/token', strategy.options.client_options.token_endpoint
   end
@@ -266,10 +266,10 @@ class OmniAuth::Strategies::OpenIDConnectTest < StrategyTestCase
   def test_option_send_nonce
     strategy.options.client_options[:host] = "foobar.com"
 
-    assert(strategy.authorize_uri =~ /nonce=/, "URI must contain nonce")
+    assert(strategy.client.authorization_uri(strategy.authorize_params) =~ /nonce=/, "URI must contain nonce")
 
     strategy.options.send_nonce = false
-    assert(!(strategy.authorize_uri =~ /nonce=/), "URI must not contain nonce")
+    assert(strategy.client.authorization_uri(strategy.authorize_params) !~ /nonce=/, "URI must not contain nonce")
   end
 
   def test_failure_endpoint_redirect
