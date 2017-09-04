@@ -21,7 +21,8 @@ class OmniAuth::Strategies::OpenIDConnectTest < StrategyTestCase
 
   def test_callback_phase(session = {}, params = {})
     code = SecureRandom.hex(16)
-    request.stubs(:params).returns({"code" => code}.merge(params))
+    state = SecureRandom.hex(16)
+    request.stubs(:params).returns({'code' => code,'state' => state}.merge(params))
     request.stubs(:path_info).returns("")
 
     strategy.unstub(:user_info)
