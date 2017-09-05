@@ -108,9 +108,14 @@ module OmniAuth
 
       option :hd, nil  # what's this?
       option :ux
-      
-      option :send_scope_to_token_endpoint, true
 
+      # what's this?
+      #option :send_scope_to_token_endpoint, true
+
+      # Azure ADは, token_endpoint にも client_id, client_secret を送信しなけ
+      # れば失敗する
+      option :send_client_secret_to_token_endpoint, false
+      
       # token_endpoint へのリクエスト.
       # default 値: :basic
       option :client_auth_method
@@ -315,10 +320,18 @@ module OmniAuth
         discover! if options.discovery
         
         # token_endpoint に対して http request を行う.
-        _access_token = client.access_token!(
-            scope: (options.scope if options.send_scope_to_token_endpoint),
-            client_auth_method: options.client_auth_method
-            )
+        # 仕様では grant_type, code, redirect_uri パラメータ
+        opts = {
+          #scope: (options.scope if options.send_scope_to_token_endpoint),
+          client_auth_method: options.client_auth_method,
+        }
+        if options.send_client_secret_to_token_endpoint
+          opts.merge!(
+            client_id: client_options.identifier, # Azure AD only.
+            client_secret: client_options.secret
+          )
+        end
+        _access_token = client.access_token! opts
         
         header = ::JWT.decoded_segments(_access_token.id_token, false).try(:[],0)
         kid = header["kid"]
