@@ -9,6 +9,16 @@ Authentication strategy using OpenID Connect. OpenID Connect is a standardized, 
 
 This package replaces 'omniauth-google-oauth2', 'omniauth-yahoojp', and 'omniauth-azure-oauth2'.
 
+## Tested OpenID Provider
+
+|Organization  |Implementation   |Note            |
+|--------------|-----------------|----------------|
+|Google        |Google Identity Platform | https://developers.google.com/identity/protocols/OpenIDConnect  |
+|Yahoo! JAPAN  |Yahoo! ID連携 v2  |https://developer.yahoo.co.jp/yconnect/v2/ |
+|Microsoft     |Azure Active Directory |[Understand the OpenID Connect authentication code flow in Azure AD](https://docs.microsoft.com/en-us/azure/active-directory/develop/active-directory-protocols-openid-connect-code)   |
+
+(2017-09) As of now, Azure AD doesn't meet OpenID Connect specification. You must set :send_client_secret_to_token_endpoint option to true.
+
 
 ## Background
 
