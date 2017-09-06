@@ -20,7 +20,6 @@ Gem::Specification.new do |spec|
   spec.require_paths = ["lib"]
 
 =begin
-  このパッケージは omniauth-google-oauth2 を置き換える。
   このパッケージは, これらと同時に使われるのが考えられる;
     - omniauth-facebook
     - omniauth-paypal-oauth2   # omniauth-paypal は古い.

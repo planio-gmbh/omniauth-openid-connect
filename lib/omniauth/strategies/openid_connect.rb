@@ -16,6 +16,8 @@ module OmniAuth
     #     http://openid.net/specs/openid-connect-core-1_0.html
     class OpenIDConnect
       # TODO: OmniAuth::Strategies::OAuth2 から派生させるようにする.
+      #       openid_connect が rack-oauth2, json-jwt に依存している
+      #       omniauth-oauth2 は, 他方, oauth2, jwt に依存. その書き換えも必要.
       include OmniAuth::Strategy
 
       # OpenIDConnect::Client.new() に渡されるオプション.
@@ -34,6 +36,7 @@ module OmniAuth
         host: nil,
         # scheme の変更だけでいいように, default 値は nil
         port: nil,
+        
         authorization_endpoint: "/authorize",
         token_endpoint: "/token",
         userinfo_endpoint: "/userinfo",
