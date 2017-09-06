@@ -2,6 +2,7 @@
 
 Authentication strategy using OpenID Connect. OpenID Connect is a standardized, simple identity layer on top of the OAuth 2.0 protocol.
 
+[![Dependency Status](https://gemnasium.com/badges/github.com/hhorikawa/omniauth-openid-connect.svg)](https://gemnasium.com/github.com/hhorikawa/omniauth-openid-connect)
 [![Gem Version](https://badge.fury.io/rb/omniauth-openid-reconnect.png)](http://badge.fury.io/rb/omniauth-openid-reconnect)
 [![Build Status](https://travis-ci.org/thinkthroughmath/omniauth-openid-reconnect.svg?branch=master)](https://travis-ci.org/thinkthroughmath/omniauth-openid-reconnect)
 [![Coverage Status](https://coveralls.io/repos/thinkthroughmath/omniauth-openid-reconnect/badge.png?branch=master)](https://coveralls.io/r/thinkthroughmath/omniauth-openid-reconnect?branch=master)
