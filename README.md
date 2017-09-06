@@ -1,38 +1,45 @@
 # OmniAuth::OpenIDConnect
 
-Authentication strategy using OpenID Connect. OpenID Connect is a standardized, simple identity layer on top of the OAuth 2.0 protocol.
+Authentication strategy using OpenID Connect for OmniAuth. OpenID Connect is a standardized, simple identity layer on top of the OAuth 2.0 protocol.
 
 [![Dependency Status](https://gemnasium.com/badges/github.com/hhorikawa/omniauth-openid-connect.svg)](https://gemnasium.com/github.com/hhorikawa/omniauth-openid-connect)
-[![Gem Version](https://badge.fury.io/rb/omniauth-openid-reconnect.png)](http://badge.fury.io/rb/omniauth-openid-reconnect)
 [![Build Status](https://travis-ci.org/thinkthroughmath/omniauth-openid-reconnect.svg?branch=master)](https://travis-ci.org/thinkthroughmath/omniauth-openid-reconnect)
 [![Coverage Status](https://coveralls.io/repos/thinkthroughmath/omniauth-openid-reconnect/badge.png?branch=master)](https://coveralls.io/r/thinkthroughmath/omniauth-openid-reconnect?branch=master)
 [![Code Climate](https://codeclimate.com/github/thinkthroughmath/omniauth-openid-reconnect.png)](https://codeclimate.com/github/thinkthroughmath/omniauth-openid-reconnect)
 
 This package replaces 'omniauth-google-oauth2', 'omniauth-yahoojp', and 'omniauth-azure-oauth2'.
 
-## Tested OpenID Provider
+
+## Tested OpenID Providers
 
 |Organization  |Implementation   |Note            |
 |--------------|-----------------|----------------|
-|Google        |Google Identity Platform | https://developers.google.com/identity/protocols/OpenIDConnect  |
-|Yahoo! JAPAN  |Yahoo! ID連携 v2  |https://developer.yahoo.co.jp/yconnect/v2/ |
-|Microsoft     |Azure Active Directory |[Understand the OpenID Connect authentication code flow in Azure AD](https://docs.microsoft.com/en-us/azure/active-directory/develop/active-directory-protocols-openid-connect-code)   |
+|Google        |Google Identity Platform |Developer's Guide https://developers.google.com/identity/protocols/OpenIDConnect  |
+|Yahoo! JAPAN  |Yahoo! ID連携 v2          |Developer's Guide https://developer.yahoo.co.jp/yconnect/v2/ |
+|Microsoft     |Azure Active Directory   |[Understand the OpenID Connect authentication code flow in Azure AD](https://docs.microsoft.com/en-us/azure/active-directory/develop/active-directory-protocols-openid-connect-code)   |
+|nov           |OpenID Connect OP sample |https://gitlab.com/horiq/openid_connect_sample
 
-(2017-09) As of now, Azure AD doesn't meet OpenID Connect specification. You must set :send_client_secret_to_token_endpoint option to true.
+(2017-09) As of now, Azure AD doesn't meet the OpenID Connect specification. You must set :send_client_secret_to_token_endpoint option to true.
 
 
-## Background
+
+## What's different
 
 This is derrived work from `jjbohn/omniauth-openid-connect` which appears to be abandoned at this point. I have continued to merge PR's placed against that repo. But I have added enough of my own changes that it is diverged enough to re-release. @ThinkThroughMath actively utilizes this strategy and we will do our best to maintain it.
 
-### Whats different.
-
-- Using Addressable 2.2.8 - In 2.3+ `addressable` decided that the way that Rails 3 handles param[] items was too hard to handle and removed the feature. This breaking change within a semantic version makes using addressable > 2.3 difficult in existing applications. There is no impact on the auth strategy though.
 - Better devise support be returning a default `name` options parameter
 - Partial integration of google `nonce` requirement.
 - Inclusing of aging PRs from the parent gem this replaces.
 
+
+
+
 ## Installation
+
+Clone this repository:
+
+    $ git clone https://github.com/hhorikawa/omniauth-openid-connect.git
+
 
 Add this line to your application's Gemfile:
 
@@ -42,9 +49,9 @@ And then execute:
 
     $ bundle
 
-Or install it yourself as:
 
-    $ gem install omniauth-openid-reconnect
+
+
 
 ## Usage
 

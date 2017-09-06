@@ -1,6 +1,6 @@
 # -*- coding:utf-8 -*-
 
-require 'addressable/uri'
+#require 'addressable/uri'  # 実際には使っていない
 require 'timeout'
 require 'net/http'
 require 'open-uri'
@@ -15,9 +15,9 @@ module OmniAuth
     # Specification::
     #     http://openid.net/specs/openid-connect-core-1_0.html
     class OpenIDConnect
-      # TODO: OmniAuth::Strategies::OAuth2 から派生させるようにする.
-      #       openid_connect が rack-oauth2, json-jwt に依存している
-      #       omniauth-oauth2 は, 他方, oauth2, jwt に依存. その書き換えも必要.
+      # OmniAuth::Strategies::OAuth2 から派生させるのは大変.
+      # - openid_connect が rack-oauth2, json-jwt に依存している
+      # - 他方, omniauth-oauth2 は, oauth2, jwt に依存. その書き換えも必要.
       include OmniAuth::Strategy
 
       # OpenIDConnect::Client.new() に渡されるオプション.
@@ -162,6 +162,7 @@ module OmniAuth
 
 
       # @override
+      # @return [OpenIDConnect::Client] サーバとのconnection
       def client
         @client ||= ::OpenIDConnect::Client.new(client_options)
       end

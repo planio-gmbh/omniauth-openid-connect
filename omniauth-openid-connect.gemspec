@@ -50,7 +50,12 @@ Gem::Specification.new do |spec|
   spec.add_dependency 'activesupport', '>= 4.2' 
   spec.add_dependency 'omniauth', '~> 1.6'
   spec.add_dependency 'openid_connect', '~> 1.1'
-  spec.add_dependency 'addressable', '~> 2.5'
+
+  # A replacement for the URI implementation that is part of Ruby's standard
+  # library.
+  # LICENSE: APACHE-2.0 
+  #spec.add_dependency 'addressable', '~> 2.5'   # 実際には使っていない
+  
   # jwt 2.0.0 が出ているが, oauth2 1.4.0 depends on jwt ~> 1.0
   # 'jwt' と 'json-jwt' があるが, 'jwt' が多数派.
   spec.add_dependency 'jwt', '~> 1.5'
