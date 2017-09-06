@@ -1,9 +1,14 @@
 # OmniAuth::OpenIDConnect
-OpenID Connect strategy for OmniAuth
+
+Authentication strategy using OpenID Connect. OpenID Connect is a standardized, simple identity layer on top of the OAuth 2.0 protocol.
+
 [![Gem Version](https://badge.fury.io/rb/omniauth-openid-reconnect.png)](http://badge.fury.io/rb/omniauth-openid-reconnect)
 [![Build Status](https://travis-ci.org/thinkthroughmath/omniauth-openid-reconnect.svg?branch=master)](https://travis-ci.org/thinkthroughmath/omniauth-openid-reconnect)
 [![Coverage Status](https://coveralls.io/repos/thinkthroughmath/omniauth-openid-reconnect/badge.png?branch=master)](https://coveralls.io/r/thinkthroughmath/omniauth-openid-reconnect?branch=master)
 [![Code Climate](https://codeclimate.com/github/thinkthroughmath/omniauth-openid-reconnect.png)](https://codeclimate.com/github/thinkthroughmath/omniauth-openid-reconnect)
+
+This package replaces 'omniauth-google-oauth2', 'omniauth-yahoojp', and 'omniauth-azure-oauth2'.
+
 
 ## Background
 
