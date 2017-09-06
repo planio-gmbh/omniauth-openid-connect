@@ -19,7 +19,7 @@ This package replaces 'omniauth-google-oauth2', 'omniauth-yahoojp', and 'omniaut
 |Microsoft     |Azure Active Directory   |[Understand the OpenID Connect authentication code flow in Azure AD](https://docs.microsoft.com/en-us/azure/active-directory/develop/active-directory-protocols-openid-connect-code)   |
 |nov           |OpenID Connect OP sample |https://gitlab.com/horiq/openid_connect_sample
 
-(2017-09) As of now, Azure AD doesn't meet the OpenID Connect specification. You must set :send_client_secret_to_token_endpoint option to true.
+(2017-09) As of now, Azure AD doesn't meet the OpenID Connect specification. You must set `true` of  `:send_client_secret_to_token_endpoint` option.
 
 
 
