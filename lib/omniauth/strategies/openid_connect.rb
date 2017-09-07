@@ -398,9 +398,14 @@ module OmniAuth
         session.delete('omniauth.nonce')
       end
 
+      
       # @override
       def session
-        @env.nil? ? {} : super
+        if OmniAuth.config.test_mode
+          @env ||= {}
+          @env["rack.session"] ||= {}
+        end
+        super # return @env['rack.session']
       end
 
       def key_or_secret
@@ -459,7 +464,7 @@ module OmniAuth
         UrlSafeBase64.decode64(str).unpack('B*').first.to_i(2).to_s
       end
 
-      # TODO: omniauth-oauth2 を利用する
+
       class CallbackError < StandardError
         attr_reader :error
         attr_accessor :error_reason, :error_uri
