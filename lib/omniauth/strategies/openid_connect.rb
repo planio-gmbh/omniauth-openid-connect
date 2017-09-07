@@ -176,20 +176,27 @@ module OmniAuth
       #
       # http://openid.net/specs/openid-connect-discovery-1_0.html
       def config
-        raise ArgumentError unless (uri = URI.parse(options.issuer)) &&
+        unless (uri = URI.parse(options.issuer)) &&
                                 (uri.scheme == 'http' || uri.scheme == 'https')
+          raise ArgumentError, "invalid options.issuer" 
+        end
         
-        @config ||= ::OpenIDConnect::Discovery::Provider::Config.discover!(
+        @@idp_config ||= {}
+        @@idp_config[options.issuer] ||= ::OpenIDConnect::Discovery::Provider::Config.discover!(
           options.issuer,
           options.discovery_cache_options&.symbolize_keys
         )
-        return @config
+        return @@idp_config[options.issuer]
       end
 
 
       # @override
       def request_phase
-        raise ArgumentError if client_options.scheme.blank? || client_options.host.blank?
+        if client_options.scheme.blank? || client_options.host.blank?
+          raise ArgumentError, "client_options.{scheme|host} missing"
+        end
+        raise ArgumentError, "options.name missing" if options.name.blank?
+          
         if client_options.scheme == "http"
           WebFinger.url_builder = URI::HTTP
           SWD.url_builder = URI::HTTP
@@ -319,7 +326,8 @@ module OmniAuth
         # これはメソッド呼び出し. See Rack::OAuth2::Client
         client.authorization_code = request.params.delete('code')
 
-        # なぜか, callback_phase でも discover! が必要.
+        # callback_phase で, ストラテジインスタンスが作り直される.
+        # => options がすべて初期値に戻る.
         options.issuer = issuer() if options.issuer.blank?
         discover! if options.discovery
         

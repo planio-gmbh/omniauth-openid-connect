@@ -68,7 +68,7 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency "guard-bundler"
   spec.add_development_dependency "rake"
   # v0.15.0 が出てる
-  spec.add_development_dependency "simplecov"
+  spec.add_development_dependency "simplecov", '~> 0.13.0'
   spec.add_development_dependency "pry"
   # 'coveralls' 0.8.21 depends on simplecov ~> 0.14.1
   #spec.add_development_dependency "coveralls"
