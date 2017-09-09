@@ -7,13 +7,14 @@ require 'omniauth/openid_connect/version'
 Gem::Specification.new do |spec|
   spec.name          = "omniauth-openid-connect"
   spec.version       = OmniAuth::OpenIDConnect::VERSION
-  spec.authors       = ["Paul Scarrone","John Bohn"]
-  spec.email         = ["paul.scarrone@gmail.com","jjbohn@gmail.com"]
+  spec.authors       = ["Hisashi Horikawa", "Paul Scarrone","John Bohn"]
+  spec.email         = ["hisashi.horikawa@gmail.com", "paul.scarrone@gmail.com","jjbohn@gmail.com"]
   spec.summary       = %q{OpenID Connect Strategy MK2 for OmniAuth}
   spec.description   = %q{OpenID Connect Strategy MK2 for OmniAuth which is fully compliant with devise and rails and currently maintained. Derived from jjbohn's work which is not actively maintained}
   spec.homepage      = "https://github.com/hhorikawa/omniauth-openid-connect"
   spec.license       = "MIT"
-
+  spec.required_ruby_version = '>= 2.2'
+  
   spec.files         = `git ls-files -z`.split("\x0")
   spec.executables   = spec.files.grep(%r{^bin/}) { |f| File.basename(f) }
   spec.test_files    = spec.files.grep(%r{^(test|spec|features)/})
@@ -61,7 +62,8 @@ Gem::Specification.new do |spec|
   spec.add_dependency 'jwt', '~> 1.5'
 
   spec.add_development_dependency "bundler", "~> 1.5"
-  spec.add_development_dependency "minitest"
+  # Ruby 2.2からバンドルされる. gem依存不要
+  #spec.add_development_dependency "minitest"
   spec.add_development_dependency "mocha"
   spec.add_development_dependency "guard"
   spec.add_development_dependency "guard-minitest"

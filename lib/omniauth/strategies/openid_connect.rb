@@ -184,7 +184,9 @@ module OmniAuth
         @@idp_config ||= {}
         @@idp_config[options.issuer] ||= ::OpenIDConnect::Discovery::Provider::Config.discover!(
           options.issuer,
-          options.discovery_cache_options&.symbolize_keys
+          # '&.' operator は Ruby 2.3で導入
+          options.discovery_cache_options ?
+                options.discovery_cache_options.symbolize_keys : {}
         )
         return @@idp_config[options.issuer]
       end
