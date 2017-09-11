@@ -44,8 +44,7 @@ module OmniAuth
         expires_in: nil
       }
       
-      # 指定しなかった場合は, client_options.{scheme, host, port} から
-      # discover!().issuer で作られる.
+      # 指定しなかった場合は, client_options.{scheme, host, port} から作られる.
       option :issuer
       
       option :discovery, false
@@ -176,19 +175,14 @@ module OmniAuth
       #
       # http://openid.net/specs/openid-connect-discovery-1_0.html
       def config
-        unless (uri = URI.parse(options.issuer)) &&
-                                (uri.scheme == 'http' || uri.scheme == 'https')
-          raise ArgumentError, "invalid options.issuer" 
-        end
-        
         @@idp_config ||= {}
-        @@idp_config[options.issuer] ||= ::OpenIDConnect::Discovery::Provider::Config.discover!(
-          options.issuer,
-          # '&.' operator は Ruby 2.3で導入
-          options.discovery_cache_options ?
-                options.discovery_cache_options.symbolize_keys : {}
-        )
-        return @@idp_config[options.issuer]
+        @@idp_config[issuer] ||=
+          ::OpenIDConnect::Discovery::Provider::Config.discover!(
+              issuer,
+              # '&.' operator は Ruby 2.3で導入
+              options.discovery_cache_options ?
+                options.discovery_cache_options.symbolize_keys : {}  )
+        return @@idp_config[issuer]
       end
 
 
@@ -204,7 +198,7 @@ module OmniAuth
           SWD.url_builder = URI::HTTP
         end
 
-        options.issuer = issuer() if options.issuer.blank?
+        #options.issuer = issuer() if options.issuer.blank?
         discover! if options.discovery
 
         client.redirect_uri = client_options.redirect_uri # See Rack::OAuth2::Client#authorization_uri()
@@ -224,13 +218,12 @@ module OmniAuth
                                                request.params['error_reason'],
                                   request.params['error_uri'])
         end
-        if session['omniauth.state']
+        if session['omniauth.state'] &&
+                (request.params['state'].to_s.empty? ||
+                 request.params['state'] != session.delete('omniauth.state'))
           # RFC 6749 4.1.2: クライアントからの認可リクエストに stateパラメータ
           # が含まれていた場合は, そのまま返ってくる. [REQUIRED]
-          if request.params['state'].to_s.empty? ||
-             request.params['state'] != stored_state()
-            raise CallbackError.new(:csrf_detected, "'state' parameter error")
-          end
+          raise CallbackError.new(:csrf_detected, "'state' parameter error")
         end
                                                                                
         # request.params["code"] のチェック, id_token の取得もこの中で.
@@ -247,11 +240,6 @@ module OmniAuth
         fail!(:failed_to_connect, e)
       end
 
-=begin
-      def authorization_code
-        request.params["code"]
-      end
-=end
 
       # @override
       # request_phase() から呼び出される.
@@ -277,7 +265,7 @@ module OmniAuth
           opts[key.to_sym] = request.params[key] if request.params[key]
         end
 
-        return opts.reject{|k,v| v.nil?}
+        return opts.reject{|_k,v| v.nil?}
       end
 
 
@@ -292,11 +280,23 @@ module OmniAuth
 
     private ##############################################
 
+      # @return [String] client_options からつくった issuer
       def issuer
-        resource = "#{client_options.scheme}://#{client_options.host}" + ((client_options.port) ? ":#{client_options.port.to_s}" : '')
-
-        # 引数は identifier 一つだけ.
-        ::OpenIDConnect::Discovery::Provider.discover!(resource).issuer
+        @issuer ||= if options.issuer
+                      unless (uri = URI.parse(options.issuer)) &&
+                             ['http', 'https'].include?(uri.scheme)
+                        raise ArgumentError, "invalid options.issuer" 
+                      end
+                      options.issuer
+                    else
+                      client_options.scheme + '://' + client_options.host +
+                        (client_options.port ? client_options.port.to_s : '')
+                    end
+          # OpenID Connect Discovery 1.0 の OpenID Provider Issuer Discovery
+          # => 実用的ではない.
+          # 引数は identifier 一つだけ.
+          #::OpenIDConnect::Discovery::Provider.discover!(resource).issuer
+        return @issuer
       end
 
       def discover!
@@ -330,7 +330,7 @@ module OmniAuth
 
         # callback_phase で, ストラテジインスタンスが作り直される.
         # => options がすべて初期値に戻る.
-        options.issuer = issuer() if options.issuer.blank?
+        #options.issuer = issuer() if options.issuer.blank?
         discover! if options.discovery
         
         # token_endpoint に対して http request を行う.
@@ -345,20 +345,20 @@ module OmniAuth
             client_secret: client_options.secret
           )
         end
-        _access_token = client.access_token! opts
+        actoken = client.access_token! opts
         
-        header = ::JWT.decoded_segments(_access_token.id_token, false).try(:[],0)
+        header = ::JWT.decoded_segments(actoken.id_token, false).try(:[],0)
         kid = header["kid"]
         key = public_key(kid)
-        _id_token = decode_id_token _access_token.id_token, key
-
-        _id_token.verify!(
-              issuer: options.issuer,
+        # key = :self_issued の場合は JWT ではない.
+        id_token = ::OpenIDConnect::ResponseObject::IdToken.decode(
+                                          actoken.id_token, key)
+        id_token.verify!(
+              issuer: issuer,
               client_id: client_options.identifier,
-              nonce: stored_nonce
-          )
+              nonce: stored_nonce         )
 
-        return _access_token
+        return actoken
       end
 
       
@@ -379,10 +379,6 @@ module OmniAuth
 =end
          
 
-      def decode_id_token(id_token, key)
-        ::OpenIDConnect::ResponseObject::IdToken.decode(id_token, key)
-      end
-
       def client_options
         options.client_options
       end
@@ -393,11 +389,6 @@ module OmniAuth
         session['omniauth.state'] = state || SecureRandom.hex(16)
       end
 
-      
-      # 破壊メソッド
-      def stored_state
-        session.delete('omniauth.state')
-      end
 
       def new_nonce
         session['omniauth.nonce'] = SecureRandom.hex(16)
@@ -430,7 +421,7 @@ module OmniAuth
               return parse_x509_key(options.client_x509_signing_key)
             end
           else
-            if(client_options.secret)
+            if client_options.secret
               return client_options.secret
             end
         end
