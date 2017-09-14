@@ -1,5 +1,5 @@
 module OmniAuth
   module OpenIDConnect
-    VERSION = "0.2.7"
+    VERSION = "0.7.7"
   end
 end

@@ -271,7 +271,8 @@ module OmniAuth
 
       def public_key(kid=nil)
         if options.discovery && kid.present?
-          key = config.jwks.select{|k| k["kid"] == kid}.try(:first)
+          # ここで jwks_uri へのアクセスが発生.
+          key = config.jwks().select{|k| k["kid"] == kid}.try(:first)
           JSON::JWK.new(key).to_key
         else
           key_or_secret
@@ -304,7 +305,7 @@ module OmniAuth
         client_options.authorization_endpoint = config.authorization_endpoint
         client_options.token_endpoint = config.token_endpoint
         client_options.userinfo_endpoint = config.userinfo_endpoint
-        client_options.jwks_uri = config.jwks_uri
+        #client_options.jwks_uri = config.jwks_uri
 
         client.token_endpoint = config.token_endpoint
         client.userinfo_endpoint = config.userinfo_endpoint
