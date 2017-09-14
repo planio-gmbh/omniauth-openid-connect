@@ -161,13 +161,15 @@ module OmniAuth
 
 
       # @override
+      # client_options から OpenIDConnect::Client インスタンスを構築.
       # @return [OpenIDConnect::Client] サーバとのconnection
       def client
         @client ||= ::OpenIDConnect::Client.new(client_options)
       end
 
 
-      # このメソッド内で discover! する.
+      # OpenID Provider Configuration Information を得る.
+      # このメソッド内で Config.discover! する.
       # 
       # @return [OpenIDConnect::Discovery::Provider::Config::Response] OpenID Provider Configuration Information
       #         <issuer>/.well-known/openid-configuration の内容
@@ -187,22 +189,40 @@ module OmniAuth
 
 
       # @override
-      def request_phase
-        if client_options.scheme.blank? || client_options.host.blank?
-          raise ArgumentError, "client_options.{scheme|host} missing"
+      # request_phase() と callback_phase() の開始前に呼び出される.
+      def setup_phase
+        if options.issuer
+          unless (uri = URI.parse(options.issuer)) &&
+                             ['http', 'https'].include?(uri.scheme)
+            raise ArgumentError, "invalid options.issuer" 
+          end
+          @issuer = options.issuer
+        else
+          if client_options.scheme.blank? || client_options.host.blank?
+            raise ArgumentError, "client_options.{scheme|host} missing"
+          end
+          @issuer = client_options.scheme + '://' + client_options.host +
+                        (client_options.port ? client_options.port.to_s : '')
         end
-        raise ArgumentError, "options.name missing" if options.name.blank?
-          
+        # OpenID Connect Discovery 1.0 の OpenID Provider Issuer Discovery
+        # => 実用的ではない.
+        # 引数は identifier 一つだけ.
+        #::OpenIDConnect::Discovery::Provider.discover!(resource).issuer
+
+        # これは discover!の前に設定.
         if client_options.scheme == "http"
           WebFinger.url_builder = URI::HTTP
           SWD.url_builder = URI::HTTP
         end
 
-        #options.issuer = issuer() if options.issuer.blank?
         discover! if options.discovery
+      end
 
-        client.redirect_uri = client_options.redirect_uri # See Rack::OAuth2::Client#authorization_uri()
-        redirect client.authorization_uri(authorize_params)
+      
+      # @override
+      def request_phase
+        # client() 内で client_options から OpenIDConnect::Client を構築.
+        redirect client().authorization_uri(authorize_params)
       end
 
 
@@ -281,36 +301,18 @@ module OmniAuth
 
     private ##############################################
 
-      # @return [String] client_options からつくった issuer
-      def issuer
-        @issuer ||= if options.issuer
-                      unless (uri = URI.parse(options.issuer)) &&
-                             ['http', 'https'].include?(uri.scheme)
-                        raise ArgumentError, "invalid options.issuer" 
-                      end
-                      options.issuer
-                    else
-                      client_options.scheme + '://' + client_options.host +
-                        (client_options.port ? client_options.port.to_s : '')
-                    end
-          # OpenID Connect Discovery 1.0 の OpenID Provider Issuer Discovery
-          # => 実用的ではない.
-          # 引数は identifier 一つだけ.
-          #::OpenIDConnect::Discovery::Provider.discover!(resource).issuer
-        return @issuer
-      end
+      # @return [String] options.issuer または client_options からつくった issuer
+      attr_reader :issuer
 
+      
       def discover!
-        # config() 内で discover! している.
+        # config() 内で実際に discover! している.
         client_options.authorization_endpoint = config.authorization_endpoint
         client_options.token_endpoint = config.token_endpoint
         client_options.userinfo_endpoint = config.userinfo_endpoint
-        #client_options.jwks_uri = config.jwks_uri
-
-        client.token_endpoint = config.token_endpoint
-        client.userinfo_endpoint = config.userinfo_endpoint
       end
 
+      
       # @override
       def user_info
         @user_info ||= access_token.userinfo!
@@ -327,13 +329,8 @@ module OmniAuth
         end
 
         # これはメソッド呼び出し. See Rack::OAuth2::Client
-        client.authorization_code = request.params.delete('code')
+        client().authorization_code = request.params.delete('code')
 
-        # callback_phase で, ストラテジインスタンスが作り直される.
-        # => options がすべて初期値に戻る.
-        #options.issuer = issuer() if options.issuer.blank?
-        discover! if options.discovery
-        
         # token_endpoint に対して http request を行う.
         # 仕様では grant_type, code, redirect_uri パラメータ
         opts = {
@@ -346,7 +343,7 @@ module OmniAuth
             client_secret: client_options.secret
           )
         end
-        actoken = client.access_token! opts
+        actoken = client().access_token! opts
         
         header = ::JWT.decoded_segments(actoken.id_token, false).try(:[],0)
         kid = header["kid"]
