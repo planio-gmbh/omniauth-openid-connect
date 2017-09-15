@@ -1,0 +1,96 @@
+
+        id_token = ::OpenIDConnect::ResponseObject::IdToken.decode(
+                                          actoken.id_token, key)
+
+
+署名の検証が（暗黙に）行われるか
+
+module OpenIDConnect
+  class ResponseObject
+    class IdToken < ConnectObject
+      class << self
+        def decode(jwt_string, key)
+          if key == :self_issued
+            decode_self_issued jwt_string
+          else
+            new JSON::JWT.decode jwt_string, key
+          end
+        end
+
+
+module JSON
+  class JWT < ActiveSupport::HashWithIndifferentAccess
+    include JOSE
+
+
+module JSON
+  module JOSE
+    extend ActiveSupport::Concern
+
+    module ClassMethods
+      def decode(input, key_or_secret = nil)
+        if input.is_a? Hash
+          decode_json_serialized input, key_or_secret
+        else
+          decode_compact_serialized input, key_or_secret   ★こっち
+        end
+      rescue MultiJson::DecodeError
+        raise JWT::InvalidFormat.new("Invalid JSON Format")
+      end
+
+
+module JSON
+  class JWT < ActiveSupport::HashWithIndifferentAccess
+    class << self
+      def decode_compact_serialized(jwt_string, key_or_secret)
+        case jwt_string.count('.') + 1
+        when JWS::NUM_OF_SEGMENTS
+          JWS.decode_compact_serialized jwt_string, key_or_secret  ★これかな？
+        when JWE::NUM_OF_SEGMENTS
+          JWE.decode_compact_serialized jwt_string, key_or_secret
+        else
+          raise InvalidFormat.new("Invalid JWT Format. JWT should include #{JWS::NUM_OF_SEGMENTS} or #{JWE::NUM_OF_SEGMENTS} segments.")
+        end
+      end
+
+
+module JSON
+  class JWS < JWT
+    class << self
+      def decode_compact_serialized(input, public_key_or_secret)
+        unless input.count('.') + 1 == NUM_OF_SEGMENTS
+          raise InvalidFormat.new("Invalid JWS Format. JWS should include #{NUM_OF_SEGMENTS} segments.")
+        end
+        header, claims, signature = input.split('.', JWS::NUM_OF_SEGMENTS).collect do |segment|
+          UrlSafeBase64.decode64 segment.to_s
+        end
+        header, claims = [header, claims].collect do |json|
+          MultiJson.load(json).with_indifferent_access
+        end
+        jws = new claims
+        jws.header = header
+        jws.signature = signature
+        jws.signature_base_string = input.split('.')[0, JWS::NUM_OF_SEGMENTS - 1].join('.')
+        jws.verify! public_key_or_secret unless public_key_or_secret == :skip_verification   ★これ!!
+        jws
+      end
+
+
+第2引数に何を与えるか
+
+module JSON
+  module JOSE
+    extend ActiveSupport::Concern
+
+    def with_jwk_support(key)
+      case key
+      when JSON::JWK
+        key.to_key
+      when JSON::JWK::Set     ★setをそのまま与えてよい.
+        key.detect do |jwk|
+          jwk[:kid] && jwk[:kid] == kid
+        end.try(:to_key) or raise JWK::Set::KidNotFound
+      else
+        key    ★X.509 証明書を渡してもOK
+      end
+    end

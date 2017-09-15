@@ -97,13 +97,16 @@ module OmniAuth
       option :max_age
       
       # Authentication Request: [OPTIONAL]
-      option :ui_locales
+      # => per End-User
+      #option :ui_locales
       
       # Authentication Request: [OPTIONAL]
-      option :id_token_hint
+      # => per End-User
+      #option :id_token_hint
       
       # Authentication Request: [OPTIONAL]
-      option :login_hint
+      # => per End-User
+      #option :login_hint
       
       # Authentication Request: [OPTIONAL]
       option :acr_values
@@ -276,12 +279,13 @@ module OmniAuth
             state: new_state(),
             nonce: (new_nonce if options.send_nonce),
         }
-        [:display, :prompt, :max_age, :ui_locales, :id_token_hint, :login_hint,
-         :acr_values, :hd, :ux].each do |key|
+        [:display, :prompt, :max_age, :acr_values, :hd, :ux].each do |key|
           opts[key] = options.send(key)
         end
 
-        %w[email realm cid].each do |key|
+        [ 'ui_locales', 'id_token_hint', 'login_hint',  # OpenID Connect Core 1.0
+          # extensions
+          'email', 'realm', 'cid'].each do |key|
           opts[key.to_sym] = request.params[key] if request.params[key]
         end
 
@@ -348,13 +352,15 @@ module OmniAuth
         header = ::JWT.decoded_segments(actoken.id_token, false).try(:[],0)
         kid = header["kid"]
         key = public_key(kid)
-        # key = :self_issued の場合は JWT ではない.
+        # key == :self_issued の場合は JWT ではない.
+        # このなかで署名の検証も行っている.
         id_token = ::OpenIDConnect::ResponseObject::IdToken.decode(
                                           actoken.id_token, key)
+        # こちらは内容の検証.
         id_token.verify!(
               issuer: issuer,
               client_id: client_options.identifier,
-              nonce: stored_nonce         )
+              nonce: session.delete('omniauth.nonce')   )
 
         return actoken
       end
@@ -390,11 +396,6 @@ module OmniAuth
 
       def new_nonce
         session['omniauth.nonce'] = SecureRandom.hex(16)
-      end
-
-      # 破壊メソッド
-      def stored_nonce
-        session.delete('omniauth.nonce')
       end
 
       

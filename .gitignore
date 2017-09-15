@@ -6,7 +6,7 @@
 InstalledFiles
 _yardoc
 coverage
-doc/
+#doc/
 lib/bundler/man
 pkg
 rdoc
@@ -16,3 +16,6 @@ test/version_tmp
 tmp
 .ruby-version
 *.idea
+
+# backup files
+*~
