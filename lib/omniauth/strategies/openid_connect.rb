@@ -285,7 +285,7 @@ module OmniAuth
 
         [ 'ui_locales', 'id_token_hint', 'login_hint',  # OpenID Connect Core 1.0
           # extensions
-          'email', 'realm', 'cid'].each do |key|
+          'email', 'realm', 'cid', 'chem'].each do |key|
           opts[key.to_sym] = request.params[key] if request.params[key]
         end
 
