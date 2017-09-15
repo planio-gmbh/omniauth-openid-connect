@@ -1,12 +1,26 @@
 # OmniAuth::OpenIDConnect
 
-Authentication strategy using OpenID Connect for OmniAuth. OpenID Connect is a standardized, simple identity layer on top of the OAuth 2.0 protocol.
+Authentication strategy using OpenID Connect for OmniAuth. This package replaces 'omniauth-google-oauth2', 'omniauth-yahoojp', and 'omniauth-azure-oauth2'.
 
 [![Dependency Status](https://gemnasium.com/badges/github.com/hhorikawa/omniauth-openid-connect.svg)](https://gemnasium.com/github.com/hhorikawa/omniauth-openid-connect)
 [![Code Climate](https://codeclimate.com/github/hhorikawa/omniauth-openid-connect/badges/gpa.svg)](https://codeclimate.com/github/hhorikawa/omniauth-openid-connect)
 [![Test Coverage](https://codeclimate.com/github/hhorikawa/omniauth-openid-connect/badges/coverage.svg)](https://codeclimate.com/github/hhorikawa/omniauth-openid-connect/coverage)
 
-This package replaces 'omniauth-google-oauth2', 'omniauth-yahoojp', and 'omniauth-azure-oauth2'.
+
+
+
+## OpenID Connect
+
+If OAuth is simply used for authentication, there is a large security vulnerability. So, each company independently responded.
+
+OpenID Connect is a standardized, simple identity layer on top of the OAuth 2.0 protocol. 
+By using OpenID Connect, we don't need to implement variety extensions of each company.
+
+OpenID Connect uses a mechanism `id_token`. In addition to `access_token`, the authentication server and clients exchange 
+the `id_token`, and verifying the signature and nonce makes preventing spoofing.
+
+There is no technical continuity with OpenID 2.0 and OpenID Connect. Only names are similar.
+
 
 
 ## Tested OpenID Providers
@@ -19,16 +33,6 @@ This package replaces 'omniauth-google-oauth2', 'omniauth-yahoojp', and 'omniaut
 |nov           |OpenID Connect OP sample |https://gitlab.com/horiq/openid_connect_sample
 
 (2017-09) As of now, Azure AD doesn't meet the OpenID Connect specification. You must set `true` of  `:send_client_secret_to_token_endpoint` option.
-
-
-
-## What's different
-
-This is derrived work from `jjbohn/omniauth-openid-connect` which appears to be abandoned at this point. I have continued to merge PR's placed against that repo. But I have added enough of my own changes that it is diverged enough to re-release. @ThinkThroughMath actively utilizes this strategy and we will do our best to maintain it.
-
-- Better devise support be returning a default `name` options parameter
-- Partial integration of google `nonce` requirement.
-- Inclusing of aging PRs from the parent gem this replaces.
 
 
 
