@@ -48,7 +48,8 @@ module OmniAuth
       option :issuer
       
       option :discovery, false
-      option :discovery_cache_options, {}
+      # SWD::Cache で単に捨てられている.
+      #option :discovery_cache_options, {}
       option :client_signing_alg
       option :client_jwk_signing_key
       option :client_x509_signing_key
@@ -182,11 +183,7 @@ module OmniAuth
       def config
         @@idp_config ||= {}
         @@idp_config[issuer] ||=
-          ::OpenIDConnect::Discovery::Provider::Config.discover!(
-              issuer,
-              # '&.' operator は Ruby 2.3で導入
-              options.discovery_cache_options ?
-                options.discovery_cache_options.symbolize_keys : {}  )
+                ::OpenIDConnect::Discovery::Provider::Config.discover!(issuer)
         return @@idp_config[issuer]
       end
 
@@ -194,19 +191,17 @@ module OmniAuth
       # @override
       # request_phase() と callback_phase() の開始前に呼び出される.
       def setup_phase
-        if options.issuer
-          unless (uri = URI.parse(options.issuer)) &&
-                             ['http', 'https'].include?(uri.scheme)
-            raise ArgumentError, "invalid options.issuer" 
-          end
-          @issuer = options.issuer
-        else
-          if client_options.scheme.blank? || client_options.host.blank?
-            raise ArgumentError, "client_options.{scheme|host} missing"
-          end
-          @issuer = client_options.scheme + '://' + client_options.host +
+        @issuer = if options.issuer
+                    options.issuer
+                  else
+                    client_options.scheme + '://' + client_options.host +
                         (client_options.port ? client_options.port.to_s : '')
+                  end
+        unless (uri = URI.parse(@issuer)) &&
+                                ['http', 'https'].include?(uri.scheme)
+          raise ArgumentError, "invalid issuer" 
         end
+
         # OpenID Connect Discovery 1.0 の OpenID Provider Issuer Discovery
         # => 実用的ではない.
         # 引数は identifier 一つだけ.
@@ -233,7 +228,7 @@ module OmniAuth
       # See https://github.com/intridea/omniauth-oauth2/
       def callback_phase
         # 'error' 必須
-        # 'error_reason' RFC 6749 にはない。Facebookは 'error' に加えて返す. TODO: 削除してよい?
+        # 'error_reason' RFC 6749 にはない。Facebookは 'error' に加えて返す.
         error = request.params['error_reason'] || request.params['error']
         if error
           raise CallbackError.new(request.params['error'],
@@ -364,23 +359,6 @@ module OmniAuth
 
         return actoken
       end
-
-      
-=begin
-      def configure_http_client_ssl
-        # http_client は HTTPClient 型
-        Rack::OAuth2.http_config do |http_client|
-          # OpenSSL::X509::Certificate
-          http_client.ssl_config.client_cert = client_options.ssl.certificate
-          # OpenSSL::PKey::PKey
-          http_client.ssl_config.client_key = client_options.ssl.private_key
-        end
-      end
-      
-      def reset_http_client
-        Rack::OAuth2.reset_http_config!
-      end
-=end
          
 
       def client_options
