@@ -20,6 +20,8 @@ OpenID Connect uses a mechanism `id_token`. In addition to `access_token`, the a
 the `id_token`, and verifying the signature and nonce makes preventing spoofing.
 
 There is no technical continuity with OpenID 2.0 and OpenID Connect. Only names are similar.
+For the full low down on OpenID Connect, please check out
+[OpenID Connect Core 1.0](https://openid.net/specs/openid-connect-core-1_0.html).
 
 
 
@@ -58,42 +60,19 @@ And then execute:
 
 ## Usage
 
-Example configuration
-```ruby
-config.omniauth :openid_connect, {
-  scope: [:openid, :email, :profile, :address],
-  response_type: :code,
-  client_options: {
-    port: 443,
-    scheme: "https",
-    host: "myprovider.com",
-    identifier: ENV["OP_CLIENT_ID"],
-    secret: ENV["OP_SECRET_KEY"],
-    redirect_uri: "http://myapp.com/users/auth/openid_connect/callback",
-  },
-}
-```
+See http://www.nslabs.jp/omniauth-openid-connect.rhtml
+
+
 
 Configuration details:
-  * `name` is an optional requirement as of `omniauth-1.2` but it does have an effect with dealing with devise and is the base for which devise uses to create routes identified with `devise_for`. The default is set to the expected camelization of `openid_connect`. If you need to override it you can pass the `name` parameter to the config hash. **Be aware** that what you set this to will be the provider for your devise routes.
-  * Although `response_type` is an available option, currently, only `:code`
-  is valid. There are plans to bring in implicit flow and hybrid flow at some
-  point, but it hasn't come up yet for me. Those flows aren't best practive for
-  server side web apps anyway and are designed more for native/mobile apps.
   * If you want to pass `state` paramete by yourself. You can set Proc Object.  
   e.g. `state: Proc.new{ SecureRandom.hex(32) }`
   * `nonce` is optional. If don't want to pass "nonce" parameter to provider, You should specify
   `false` to `send_nonce` option. (default true)
   * Support for other client authentication methods. If don't specified
   `:client_auth_method` option, automatically set `:basic`.
-  * Use "OpenID Connect Discovery", You should specify `true` to `discovery` option. (default false)
-  * In "OpenID Connect Discovery", generally provider should have Webfinger endpoint.
-  If provider does not have Webfinger endpoint, You can specify "Issuer" to option.  
-  e.g. `issuer: "https://myprovider.com"`  
-  It means to get configuration from "https://myprovider.com/.well-known/openid-configuration".
 
-For the full low down on OpenID Connect, please check out
-[the spec](http://openid.net/specs/openid-connect-core-1_0.html).
+
 
 ## Contributing
 
