@@ -19,3 +19,6 @@ tmp
 
 # backup files
 *~
+
+.ruby-gemset
+Gemfile.lock
