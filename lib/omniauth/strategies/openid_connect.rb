@@ -32,14 +32,14 @@ module OmniAuth
         redirect_uri: nil,
 
         # 必須.
-        scheme: "https",
+        scheme: 'https',
         host: nil,
         # scheme の変更だけでいいように, default 値は nil
         port: nil,
         
-        authorization_endpoint: "/authorize",
-        token_endpoint: "/token",
-        userinfo_endpoint: "/userinfo",
+        authorization_endpoint: '/authorize',
+        token_endpoint: '/token',
+        userinfo_endpoint: '/userinfo',
         # jwks_uri: '/jwk'   # これはない.
         expires_in: nil
       }
@@ -146,7 +146,7 @@ module OmniAuth
       end
 
       extra do
-        {raw_info: user_info.raw_attributes}
+        { raw_info: user_info.raw_attributes }
       end
 
       credentials do
@@ -317,7 +317,7 @@ module OmniAuth
         @user_info ||= access_token.userinfo!
       end
 
-      
+
       # @override
       # callback_phase() から呼び出される.
       # @return [Rack::OAuth2::AccessToken] アクセストークン
@@ -359,7 +359,7 @@ module OmniAuth
 
         return actoken
       end
-         
+
 
       def client_options
         options.client_options

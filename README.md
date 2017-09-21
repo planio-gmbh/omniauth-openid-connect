@@ -6,6 +6,9 @@ Authentication strategy using OpenID Connect for OmniAuth. This package replaces
 [![Code Climate](https://codeclimate.com/github/hhorikawa/omniauth-openid-connect/badges/gpa.svg)](https://codeclimate.com/github/hhorikawa/omniauth-openid-connect)
 [![Test Coverage](https://codeclimate.com/github/hhorikawa/omniauth-openid-connect/badges/coverage.svg)](https://codeclimate.com/github/hhorikawa/omniauth-openid-connect/coverage)
 
+Originally was [omniauth-openid-connect](https://github.com/jjbohn/omniauth-openid-connect)
+
+I've forked this repository and launch as separate gem because maintaining of original was dropped.
 
 
 
@@ -46,9 +49,6 @@ Clone this repository:
     $ git clone https://github.com/hhorikawa/omniauth-openid-connect.git
 
 
-Add this line to your application's Gemfile:
-
-    gem 'omniauth-openid-reconnect'
 
 And then execute:
 
