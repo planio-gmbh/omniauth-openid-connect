@@ -31,16 +31,17 @@ module OmniAuth
         # Authentication Request: [REQUIRED]
         redirect_uri: nil,
 
-        # 必須.
+        # [REQUIRED] authorization_endpoint のホスト.
         scheme: 'https',
         host: nil,
         # scheme の変更だけでいいように, default 値は nil
         port: nil,
-        
+
+        # discovery: falseの時に指定.
         authorization_endpoint: '/authorize',
         token_endpoint: '/token',
         userinfo_endpoint: '/userinfo',
-        # jwks_uri: '/jwk'   # これはない.
+        # jwks_uri: '/jwk'   # discoverしないのでこのオプションはない.
         expires_in: nil
       }
       
@@ -50,7 +51,10 @@ module OmniAuth
       option :discovery, false
       # SWD::Cache で単に捨てられている.
       #option :discovery_cache_options, {}
-      option :client_signing_alg
+
+      #使わない.
+      #option :client_signing_alg
+      
       option :client_jwk_signing_key
       option :client_x509_signing_key
 
@@ -288,15 +292,22 @@ module OmniAuth
       end
 
 
-      def public_key(kid=nil)
-        if options.discovery && kid.present?
+      def public_key(kid = nil)
+        if options.discovery
           # ここで jwks_uri へのアクセスが発生.
-          key = config.jwks().select{|k| k["kid"] == kid}.try(:first)
-          JSON::JWK.new(key).to_key
+          return config.jwks() # setのままでOK
+          #key = config.jwks().select{|k| k["kid"] == kid}.try(:first)
+          #JSON::JWK.new(key).to_key
         else
-          key_or_secret
+          if options.client_jwk_signing_key
+            return parse_jwk_key(options.client_jwk_signing_key, kid)
+          elsif options.client_x509_signing_key
+            return parse_x509_key(options.client_x509_signing_key, kid)
+          end
+          raise ArgumentError, "internal error: missing RSA public key"
         end
       end
+      
 
     private ##############################################
 
@@ -343,12 +354,13 @@ module OmniAuth
           )
         end
         actoken = client().access_token! opts
-        
-        header = ::JWT.decoded_segments(actoken.id_token, false).try(:[],0)
-        kid = header["kid"]
-        key = public_key(kid)
-        # key == :self_issued の場合は JWT ではない.
-        # このなかで署名の検証も行っている.
+
+        # 鍵を選ぶ。"{ヘッダ部}.{ペイロード部}.{シグネチャ部}" と、ピリオドで
+        # 区切られている。ヘッダ部にアルゴリズムが書かれている.
+        header = ::JWT.decoded_segments(actoken.id_token, false)[0]
+        key = key_or_secret header
+
+        # このなかで署名の検証も行う. => JSON::JWS::VerificationFailed
         id_token = ::OpenIDConnect::ResponseObject::IdToken.decode(
                                           actoken.id_token, key)
         # こちらは内容の検証.
@@ -386,60 +398,52 @@ module OmniAuth
         super # return @env['rack.session']
       end
 
-      def key_or_secret
-        case options.client_signing_alg
+
+      # HMAC-SHA256 の場合は, client_secret を共通鍵とする
+      # RSAの場合は, 認証サーバの公開鍵を使う
+      def key_or_secret header
+        case header['alg'].to_sym
           when :HS256, :HS384, :HS512
             return client_options.secret
-
           when :RS256, :RS384, :RS512
-            if options.client_jwk_signing_key
-              return parse_jwk_key(options.client_jwk_signing_key)
-            elsif options.client_x509_signing_key
-              return parse_x509_key(options.client_x509_signing_key)
-            end
+            return public_key(header['kid'])
           else
-            if client_options.secret
-              return client_options.secret
-            end
+            # ES256 : ECDSA using P-256 curve and SHA-256 hash
+            raise ArgumentError, "unsupported alg: #{header['alg']}"
         end
-        return nil
       end
 
-      def parse_x509_key(key)
-        OpenSSL::X509::Certificate.new(key).public_key
+      # @param [String or IO] key  PEM形式の証明書データ
+      # @exception [OpenSSL::X509::CertificateError] 証明書のフォーマットが不正
+      def parse_x509_key key_or_hash, kid
+        if key_or_hash.is_a?(Hash)
+          key_or_hash.each do |key, pem|
+            if kid == key
+              return OpenSSL::X509::Certificate.new(pem).public_key
+            end
+          end
+          raise ArgumentError, "missing kid: #{kid}"
+        else
+          return OpenSSL::X509::Certificate.new(key_or_hash).public_key
+        end
       end
 
 
       # @param [String or Hash] key JSON形式の文字列, またはハッシュ.
-      def parse_jwk_key(key)
-        if key.is_a?(String)
-          json = JSON.parse(key)
-        elsif key.is_a?(Hash)
-          json = key
+      def parse_jwk_key key_or_hash, kid
+        if key_or_hash.is_a?(String)
+          json = JSON.parse(key_or_hash)
+        elsif key_or_hash.is_a?(Hash)
+          json = key_or_hash
         else
-          raise TypeError, "key was #{key.class}, #{key.inspect}" 
+          raise TypeError, "key was #{key_or_hash.class}, #{key_or_hash.inspect}"
         end
 
         if json.has_key?('keys')
-          JSON::JWK::Set.new json['keys']
+          return JSON::JWK::Set.new json['keys']
         else
-          JSON::JWK.new json
+          return JSON::JWK.new json
         end
-      end
-
-=begin
-      def create_rsa_key(mod, exp)
-        key = OpenSSL::PKey::RSA.new
-        exponent = OpenSSL::BN.new decode(exp)
-        modulus = OpenSSL::BN.new decode(mod)
-        key.e = exponent
-        key.n = modulus
-        key
-      end
-=end
-      
-      def decode(str)
-        UrlSafeBase64.decode64(str).unpack('B*').first.to_i(2).to_s
       end
 
 

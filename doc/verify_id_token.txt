@@ -54,6 +54,7 @@ module JSON
       end
 
 
+<pre>
 module JSON
   class JWS < JWT
     class << self
@@ -74,6 +75,7 @@ module JSON
         jws.verify! public_key_or_secret unless public_key_or_secret == :skip_verification   ★これ!!
         jws
       end
+</pre>
 
 
 第2引数に何を与えるか
