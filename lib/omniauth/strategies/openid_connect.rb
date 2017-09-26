@@ -3,10 +3,11 @@
 #require 'addressable/uri'  # 実際には使っていない
 require 'timeout'
 require 'net/http'
-require 'open-uri'
+#require 'open-uri'
 require 'omniauth'
 require 'openid_connect'
 require 'jwt'
+
 
 module OmniAuth
   module Strategies
@@ -168,6 +169,15 @@ module OmniAuth
       end
 
 
+      def initialize(app, *args, &block)
+        if args.last.is_a?(Hash)
+          OmniAuth::OpenIDConnect.hash_deep_check(self.class.default_options,
+                                                  args.last)
+        end
+        super
+      end
+      
+      
       # @override
       # client_options から OpenIDConnect::Client インスタンスを構築.
       # @return [OpenIDConnect::Client] サーバとのconnection
@@ -300,9 +310,11 @@ module OmniAuth
           #JSON::JWK.new(key).to_key
         else
           if options.client_jwk_signing_key
-            return parse_jwk_key(options.client_jwk_signing_key, kid)
+            return OmniAuth::OpenIDConnect.parse_jwk_key(
+                                        options.client_jwk_signing_key, kid)
           elsif options.client_x509_signing_key
-            return parse_x509_key(options.client_x509_signing_key, kid)
+            return OmniAuth::OpenIDConnect.parse_x509_key(
+                                        options.client_x509_signing_key, kid)
           end
           raise ArgumentError, "internal error: missing RSA public key"
         end
@@ -410,39 +422,6 @@ module OmniAuth
           else
             # ES256 : ECDSA using P-256 curve and SHA-256 hash
             raise ArgumentError, "unsupported alg: #{header['alg']}"
-        end
-      end
-
-      # @param [String or IO] key  PEM形式の証明書データ
-      # @exception [OpenSSL::X509::CertificateError] 証明書のフォーマットが不正
-      def parse_x509_key key_or_hash, kid
-        if key_or_hash.is_a?(Hash)
-          key_or_hash.each do |key, pem|
-            if kid == key
-              return OpenSSL::X509::Certificate.new(pem).public_key
-            end
-          end
-          raise ArgumentError, "missing kid: #{kid}"
-        else
-          return OpenSSL::X509::Certificate.new(key_or_hash).public_key
-        end
-      end
-
-
-      # @param [String or Hash] key JSON形式の文字列, またはハッシュ.
-      def parse_jwk_key key_or_hash, kid
-        if key_or_hash.is_a?(String)
-          json = JSON.parse(key_or_hash)
-        elsif key_or_hash.is_a?(Hash)
-          json = key_or_hash
-        else
-          raise TypeError, "key was #{key_or_hash.class}, #{key_or_hash.inspect}"
-        end
-
-        if json.has_key?('keys')
-          return JSON::JWK::Set.new json['keys']
-        else
-          return JSON::JWK.new json
         end
       end
 
