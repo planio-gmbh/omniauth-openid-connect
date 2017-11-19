@@ -205,6 +205,7 @@ module OmniAuth
       # @override
       # request_phase() と callback_phase() の開始前に呼び出される.
       def setup_phase
+        super
         @issuer = if options.issuer
                     options.issuer
                   else
