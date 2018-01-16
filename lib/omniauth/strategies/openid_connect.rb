@@ -131,10 +131,14 @@ module OmniAuth
       # default 値: :basic
       option :client_auth_method
 
+      # Any field from user_info to be processed as UID
+      option :uid_field, 'sub'
 
       attr_accessor :access_token
 
-      uid { user_info.sub }
+      uid do
+	user_info.send(options.uid_field.to_s)
+      end
 
       info do
         {
