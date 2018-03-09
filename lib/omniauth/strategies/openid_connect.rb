@@ -199,10 +199,7 @@ module OmniAuth
       #
       # http://openid.net/specs/openid-connect-discovery-1_0.html
       def config
-        @@idp_config ||= {}
-        @@idp_config[issuer] ||=
-                ::OpenIDConnect::Discovery::Provider::Config.discover!(issuer)
-        return @@idp_config[issuer]
+        OmniAuth::OpenIDConnect::Configuration.instance.config(issuer)
       end
 
 
@@ -239,7 +236,7 @@ module OmniAuth
       # @override
       def request_phase
         # client() 内で client_options から OpenIDConnect::Client を構築.
-        redirect client().authorization_uri(authorize_params)
+        redirect client.authorization_uri(authorize_params)
       end
 
 
@@ -264,7 +261,7 @@ module OmniAuth
         end
                                                                                
         # request.params["code"] のチェック, id_token の取得もこの中で.
-        self.access_token = build_access_token()
+        self.access_token = build_access_token
         #self.access_token = access_token.refresh! if access_token.expired?
         super
       rescue OmniAuth::OpenIDConnect::MissingCodeError => e
@@ -275,6 +272,8 @@ module OmniAuth
         fail!(:timeout, e)
       rescue ::SocketError => e
         fail!(:failed_to_connect, e)
+      rescue StandardError => e
+        fail!(:token_verification_failed, e)
       end
 
 
@@ -290,7 +289,7 @@ module OmniAuth
             # Rack::OAuth2::Client
             response_type: options.response_type,
 
-            state: new_state(),
+            state: new_state,
             nonce: (new_nonce if options.send_nonce),
         }
         [:display, :prompt, :max_age, :acr_values, :hd, :ux].each do |key|
@@ -303,14 +302,14 @@ module OmniAuth
           opts[key.to_sym] = request.params[key] if request.params[key]
         end
 
-        return opts.reject{|_k,v| v.nil?}
+        opts.reject{|_k,v| v.nil?}
       end
 
 
       def public_key(kid = nil)
         if options.discovery
           # ここで jwks_uri へのアクセスが発生.
-          return config.jwks() # setのままでOK
+          config.jwks # setのままでOK
           #key = config.jwks().select{|k| k["kid"] == kid}.try(:first)
           #JSON::JWK.new(key).to_key
         else
@@ -351,12 +350,12 @@ module OmniAuth
       # @return [Rack::OAuth2::AccessToken] アクセストークン
       #         'oauth2'パッケージの OAuth2::AccessToken クラスとは別物.
       def build_access_token
-        if !request.params["code"]
+        unless request.params["code"]
           raise OmniAuth::OpenIDConnect::MissingCodeError.new(request.params["error"])
         end
 
         # これはメソッド呼び出し. See Rack::OAuth2::Client
-        client().authorization_code = request.params.delete('code')
+        client.authorization_code = request.params.delete('code')
 
         # token_endpoint に対して http request を行う.
         # 仕様では grant_type, code, redirect_uri パラメータ
@@ -370,7 +369,7 @@ module OmniAuth
             client_secret: client_options.secret
           )
         end
-        actoken = client().access_token! opts
+        actoken = client.access_token! opts
 
         # 鍵を選ぶ。"{ヘッダ部}.{ペイロード部}.{シグネチャ部}" と、ピリオドで
         # 区切られている。ヘッダ部にアルゴリズムが書かれている.
@@ -386,7 +385,7 @@ module OmniAuth
               client_id: client_options.identifier,
               nonce: session.delete('omniauth.nonce')   )
 
-        return actoken
+        actoken
       end
 
 
@@ -396,6 +395,7 @@ module OmniAuth
 
 
       def new_state
+        state = nil
         state = options.state.call if options.state.respond_to? :call
         session['omniauth.state'] = state || SecureRandom.hex(16)
       end
