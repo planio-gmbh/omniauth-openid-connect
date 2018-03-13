@@ -3,7 +3,7 @@ require 'singleton'
 module OmniAuth
   module OpenIDConnect
     class Configuration
-      inlcude Singleton
+      include Singleton
 
       def initialize
         @idp_config = {}
