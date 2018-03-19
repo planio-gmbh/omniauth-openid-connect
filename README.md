@@ -31,15 +31,13 @@ For the full low down on OpenID Connect, please check out
 
 |Organization  |Implementation   |Note            |
 |--------------|-----------------|----------------|
-|Google        |Google Identity Platform |Developer's Guide https://developers.google.com/identity/protocols/OpenIDConnect  |
-|Yahoo! JAPAN  |Yahoo! ID連携 v2          |Developer's Guide https://developer.yahoo.co.jp/yconnect/v2/ |
-|Microsoft     |Azure Active Directory   |[Understand the OpenID Connect authentication code flow in Azure AD](https://docs.microsoft.com/en-us/azure/active-directory/develop/active-directory-protocols-openid-connect-code)   |
-|nov           |OpenID Connect OP sample |https://gitlab.com/horiq/openid_connect_sample
+|Google        |Google Identity Platform |[Developer's Guide](https://developers.google.com/identity/protocols/OpenIDConnect)  |
+|Yahoo! JAPAN  |Yahoo! ID連携 v2          |[Developer's Guide](https://developer.yahoo.co.jp/yconnect/v2/) |
+|Microsoft     |Azure Active Directory   |[Understand the OpenID Connect authentication code flow in Azure AD](https://docs.microsoft.com/en-us/azure/active-directory/develop/active-directory-protocols-openid-connect-code) |
+|nov           |OpenID Connect OP sample |[Sample Application](https://gitlab.com/horiq/openid_connect_sample) |
+|keycloak      |Redhat's Keyloak           |[Securing Applications](https://www.keycloak.org/docs/latest/securing_apps/index.html)|
 
 (2017-09) As of now, Azure AD doesn't meet the OpenID Connect specification. You must set `true` of  `:send_client_secret_to_token_endpoint` option.
-
-
-
 
 ## Installation
 
@@ -75,7 +73,7 @@ Configuration details:
 
 ## Contributing
 
-1. Fork it ( http://github.com/thinkthroughmath/omniauth-openid-reconnect/fork )
+1. Fork it ( https://github.com/hhorikawa/omniauth-openid-connect )
 2. Create your feature branch (`git checkout -b my-new-feature`)
 3. Commit your changes (`git commit -am 'Add some feature'`)
 4. Push to the branch (`git push origin my-new-feature`)
