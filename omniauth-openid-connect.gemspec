@@ -50,7 +50,7 @@ Gem::Specification.new do |spec|
   # symbolize_keys() 
   spec.add_dependency 'activesupport', '>= 4.2' 
   spec.add_dependency 'omniauth', '~> 1.6'
-  spec.add_dependency 'openid_connect', '~> 1.1'
+  spec.add_dependency 'openid_connect', '~> 1.1.5'
 
   # A replacement for the URI implementation that is part of Ruby's standard
   # library.
