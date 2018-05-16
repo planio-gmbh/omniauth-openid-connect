@@ -1,3 +1,5 @@
+# -*- coding:utf-8 -*-
+
 require 'timeout'
 require 'net/http'
 require 'omniauth'
@@ -171,7 +173,7 @@ module OmniAuth
       #
       # @return [OpenIDConnect::Discovery::Provider::Config::Response] OpenID Provider Configuration Information
       #         <issuer>/.well-known/openid-configuration の内容
-      # @exception [OpenIDConnect::Discovery::DiscoveryFailed] 失敗した場合
+      # @raise [OpenIDConnect::Discovery::DiscoveryFailed] 失敗した場合
       #
       # http://openid.net/specs/openid-connect-discovery-1_0.html
       def config
