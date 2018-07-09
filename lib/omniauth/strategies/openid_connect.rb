@@ -90,8 +90,10 @@ module OmniAuth
           response_type: options.response_type,
           scope: options.scope,
           nonce: (nonce if options.send_nonce),
-          state: (session["state"] = options.state.call if options.state.respond_to? :call)
+          state: (session["state"] = options.state.call if options.state.respond_to? :call),
+          prompt: options.prompt
         }
+
         client.authorization_uri(opts.reject { |_,v| v.nil? })
       end
 
