@@ -270,7 +270,7 @@ module OmniAuth
           state: new_state,
           nonce: (new_nonce if options.send_nonce),
         }
-        %i[display prompt max_age acr_values hd ux].each do |key|
+        %i[display max_age acr_values hd ux].each do |key|
           opts[key] = options.send(key)
         end
 
