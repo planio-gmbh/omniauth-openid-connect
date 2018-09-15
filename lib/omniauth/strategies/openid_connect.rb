@@ -398,6 +398,8 @@ module OmniAuth
           when :HS256, :HS384, :HS512
             return client_options.secret
           when :RS256, :RS384, :RS512
+            # public_key() のなかで, :client_jwk_signing_key と
+            # :client_x509_signing_key を参照する
             return public_key(header['kid'])
           else
             # ES256 : ECDSA using P-256 curve and SHA-256 hash
