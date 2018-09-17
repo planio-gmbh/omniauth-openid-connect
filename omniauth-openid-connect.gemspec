@@ -13,7 +13,8 @@ Gem::Specification.new do |spec|
   spec.description   = %q{OpenID Connect Strategy MK2 for OmniAuth which is fully compliant with devise and rails and currently maintained. Derived from jjbohn's work which is not actively maintained}
   spec.homepage      = "https://github.com/hhorikawa/omniauth-openid-connect"
   spec.license       = 'MIT'
-  spec.required_ruby_version = '>= 2.2'
+  # v2.2 は 2018-03-31 EOL.
+  spec.required_ruby_version = '>= 2.3'
   
   spec.files         = `git ls-files -z`.split("\x0")
   spec.executables   = spec.files.grep(%r{^bin/}) { |f| File.basename(f) }
