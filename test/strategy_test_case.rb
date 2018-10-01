@@ -1,19 +1,3 @@
-require 'simplecov'
-require 'coveralls'
-require 'minitest/autorun'
-require 'mocha/mini_test'
-require 'faker'
-require 'active_support'
-require 'omniauth_openid_connect'
-require_relative 'strategy_test_case'
-
-SimpleCov.command_name 'test'
-SimpleCov.start
-Coveralls.wear!
-OmniAuth.config.test_mode = true
-
-# TODO: is this still needed
-
 class StrategyTestCase < MiniTest::Test
   class DummyApp
     def call(env); end
@@ -22,8 +6,8 @@ class StrategyTestCase < MiniTest::Test
   attr_accessor :identifier, :secret
 
   def setup
-    @identifier = "1234"
-    @secret = "1234asdgat3"
+    @identifier = '1234'
+    @secret = '1234asdgat3'
   end
 
   def client
@@ -39,7 +23,8 @@ class StrategyTestCase < MiniTest::Test
       preferred_username: Faker::Internet.user_name,
       given_name: Faker::Name.first_name,
       family_name: Faker::Name.last_name,
-      picture: Faker::Internet.url + ".png",
+      gender: 'female',
+      picture: Faker::Internet.url + '.png',
       phone_number: Faker::PhoneNumber.phone_number,
       website: Faker::Internet.url,
     )
