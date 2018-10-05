@@ -82,7 +82,6 @@ module OmniAuth
       end
 
       def request_phase
-        options.issuer = issuer if options.issuer.blank?
         discover! if options.discovery
         redirect authorize_uri
       end
@@ -96,7 +95,6 @@ module OmniAuth
         elsif !request.params['code']
           return fail!(:missing_code, OmniAuth::OpenIDConnect::MissingCodeError.new(request.params['error']))
         else
-          options.issuer = issuer if options.issuer.blank?
           discover! if options.discovery
           client.redirect_uri = redirect_uri
           client.authorization_code = authorization_code
@@ -144,6 +142,7 @@ module OmniAuth
       end
 
       def discover!
+        options.issuer = issuer if options.issuer.blank?
         client_options.authorization_endpoint = config.authorization_endpoint
         client_options.token_endpoint = config.token_endpoint
         client_options.userinfo_endpoint = config.userinfo_endpoint
