@@ -37,6 +37,7 @@ module OmniAuth
       option :max_age
       option :ui_locales
       option :id_token_hint
+      option :verify_id_token, nil
       option :login_hint
       option :acr_values
       option :send_nonce, true
@@ -143,6 +144,8 @@ module OmniAuth
 
       def discover!
         options.issuer = issuer if options.issuer.blank?
+        options.verify_id_token = true if options.verify_id_token.nil?
+
         client_options.authorization_endpoint = config.authorization_endpoint
         client_options.token_endpoint = config.token_endpoint
         client_options.userinfo_endpoint = config.userinfo_endpoint
@@ -169,12 +172,16 @@ module OmniAuth
             scope: (options.scope if options.send_scope_to_token_endpoint),
             client_auth_method: options.client_auth_method
           )
-          _id_token = decode_id_token _access_token.id_token
-          _id_token.verify!(
-            issuer: options.issuer,
-            client_id: client_options.identifier,
-            nonce: stored_nonce
-          )
+
+          if options.verify_id_token
+            _id_token = decode_id_token _access_token.id_token
+            _id_token.verify!(
+              issuer: options.issuer,
+              client_id: client_options.identifier,
+              nonce: stored_nonce
+            )
+          end
+
           _access_token
         end
       end
