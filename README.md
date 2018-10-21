@@ -62,12 +62,22 @@ See http://www.nslabs.jp/omniauth-openid-connect.rhtml
 
 
 Configuration details:
-  * If you want to pass `state` paramete by yourself. You can set Proc Object.  
+
+  * If you want to pass `state` parameter by yourself. You can set Proc Object.  
   e.g. `state: Proc.new{ SecureRandom.hex(32) }`
-  * `nonce` is optional. If don't want to pass "nonce" parameter to provider, You should specify
+  * `send_nonce` is optional. If don't want to pass "nonce" parameter to provider, You should specify
   `false` to `send_nonce` option. (default true)
   * Support for other client authentication methods. If don't specified
   `:client_auth_method` option, automatically set `:basic`.
+
+  * `name` is arbitrary, I recommend using the name of your provider. The name
+  configuration exists because you could be using multiple OpenID Connect
+  providers in a single app.
+  * Although `response_type` is an available option, currently, only `:code`
+  is valid. There are plans to bring in implicit flow and hybrid flow at some
+  point, but it hasn't come up yet for me. Those flows aren't best practive for
+  server side web apps anyway and are designed more for native/mobile apps.
+
 
 
 

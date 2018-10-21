@@ -95,6 +95,14 @@ module OmniAuth
       # Authentication Request: [OPTIONAL]
       option :acr_values
 
+      # not option, but request.params 
+      #option :ui_locales
+      #option :id_token_hint
+      #option :login_hint
+
+      # Must verify the id_token. So remove this option.
+      #option :verify_id_token, nil
+
       option :hd, nil # what's this?
       option :ux
 
@@ -112,7 +120,7 @@ module OmniAuth
       # Any field from user_info to be processed as UID
       option :uid_field, 'sub'
 
-      attr_accessor :access_token
+      attr_reader :access_token
 
       uid do
         user_info.send(options.uid_field.to_s)
@@ -133,7 +141,7 @@ module OmniAuth
       end
 
       extra do
-        { raw_info: user_info.raw_attributes }
+        { raw_info: fix_user_info(user_info).raw_attributes }
       end
 
       credentials do
@@ -239,7 +247,7 @@ module OmniAuth
         end
 
         # request.params["code"] のチェック, id_token の取得もこの中で.
-        self.access_token = build_access_token
+        @access_token = build_access_token
         # self.access_token = access_token.refresh! if access_token.expired?
         super
       rescue OmniAuth::OpenIDConnect::MissingCodeError => e
@@ -268,6 +276,7 @@ module OmniAuth
           response_type: options.response_type,
 
           state: new_state,
+          #response_mode: options.response_mode,    [NOT RECOMMENDED]
           nonce: (new_nonce if options.send_nonce),
         }
         %i[display max_age acr_values hd ux].each do |key|
@@ -308,15 +317,28 @@ module OmniAuth
       attr_reader :issuer
 
       def discover!
-        # config() 内で実際に discover! している.
-        client_options.authorization_endpoint = config.authorization_endpoint
-        client_options.token_endpoint = config.token_endpoint
-        client_options.userinfo_endpoint = config.userinfo_endpoint
+        # config() 内で, issuer を引数にして, 実際に discover! している.
+        client_options.authorization_endpoint = config().authorization_endpoint
+        client_options.token_endpoint = config().token_endpoint
+        client_options.userinfo_endpoint = config().userinfo_endpoint
       end
+
 
       # @override
       def user_info
         @user_info ||= access_token.userinfo!
+      end
+
+
+      # Google sends the string "true" as the value for the field 
+      # 'email_verified' while a boolean is expected.
+      def fix_user_info(user_info)
+        if user_info.email_verified.is_a? String
+          user_info.email_verified = 
+                            (user_info.email_verified.casecmp("true") == 0)
+        end
+        #user_info.gender = nil # in case someone picks something else than male or female, we don't need it anyway
+        user_info
       end
 
 

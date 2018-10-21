@@ -2,7 +2,7 @@
 
 require 'simplecov'
 require 'minitest/autorun'
-require 'mocha/mini_test'
+require 'mocha/minitest'
 require 'faker'
 require 'active_support'
 

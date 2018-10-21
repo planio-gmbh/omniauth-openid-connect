@@ -73,7 +73,8 @@ Gem::Specification.new do |spec|
   # v0.15.0 が出てる
   spec.add_development_dependency "simplecov", '~> 0.13.0'
   spec.add_development_dependency "pry"
-  # 'coveralls' 0.8.21 depends on simplecov ~> 0.14.1
+  # 'coveralls' v0.8.21 depends on simplecov ~> 0.14.1
+  # coverall v0.8.22 depends on simplecov ~> 0.16.1
   #spec.add_development_dependency "coveralls"
   spec.add_development_dependency "faker"
 end
