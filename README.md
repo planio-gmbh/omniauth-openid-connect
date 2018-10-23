@@ -39,12 +39,33 @@ For the full low down on OpenID Connect, please check out
 
 (2017-09) As of now, Azure AD doesn't meet the OpenID Connect specification. You must set `true` of  `:send_client_secret_to_token_endpoint` option.
 
+
+
+
 ## Installation
 
 Clone this repository:
 
     $ git clone https://github.com/hhorikawa/omniauth-openid-connect.git
+    $ rake build
+    # rake install:local
 
+
+Gemfile:
+
+```ruby
+    # 認証系
+    gem "omniauth"
+
+    # Facebook OAuth2 Strategy for OmniAuth
+    # https://github.com/mkdynamic/omniauth-facebook
+    gem "omniauth-facebook"
+
+    # OpenID Connect対応
+    # googleはこちら。
+    gem 'openid_connect', '1.1.5'   # バージョン固定.
+    gem "omniauth-openid-connect"
+```
 
 
 And then execute:
