@@ -1,3 +1,5 @@
+# This project is no longer maintained. Please see https://github.com/m0n9oose/omniauth_openid_connect for a maintained version.
+
 # OmniAuth::OpenIDConnect
 
 Authentication strategy using OpenID Connect for OmniAuth. This package replaces 'omniauth-google-oauth2', 'omniauth-yahoojp', and 'omniauth-azure-oauth2'.
