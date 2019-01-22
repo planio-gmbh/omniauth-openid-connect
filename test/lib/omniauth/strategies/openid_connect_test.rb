@@ -76,7 +76,18 @@ module OmniAuth
         strategy.request_phase
       end
 
-      def test_request_phase_with_http
+
+      def test_request_phase_with_ui_locales
+        expected_redirect = /^https:\/\/example\.com\/authorize\?client_id=1234&nonce=[\w\d]{32}&response_type=code&scope=openid&state=[\w\d]{32}&ui_locales=fr\+en$/
+        strategy.options.ui_locales = 'fr en'
+        strategy.options.issuer = 'example.com'
+        strategy.options.client_options.host = 'example.com'
+        strategy.expects(:redirect).with(regexp_matches(expected_redirect))
+        strategy.request_phase
+      end
+
+      
+      def test_request_phase_via_http
         expected_redirect = /^http:\/\/.*$/
         strategy.options.client_options.scheme = 'http'
         strategy.options.issuer = 'example.com'
@@ -85,6 +96,7 @@ module OmniAuth
         strategy.request_phase
       end
 
+      
       def test_uid
         assert_equal user_info.sub, strategy.uid
       end
