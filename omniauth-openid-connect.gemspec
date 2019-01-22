@@ -7,8 +7,10 @@ require 'omniauth/openid_connect/version'
 Gem::Specification.new do |spec|
   spec.name          = "omniauth-openid-connect"
   spec.version       = OmniAuth::OpenIDConnect::VERSION
-  spec.authors       = ["Hisashi Horikawa", "Paul Scarrone","John Bohn"]
-  spec.email         = ["hisashi.horikawa@gmail.com", "paul.scarrone@gmail.com","jjbohn@gmail.com"]
+  spec.authors       = ["Hisashi Horikawa", "Paul Scarrone",
+                        'John Bohn', 'Ilya Shcherbinin']
+  spec.email         = ["hisashi.horikawa@gmail.com", "paul.scarrone@gmail.com",
+                        'jjbohn@gmail.com', 'm0n9oose@gmail.com']
   spec.summary       = %q{OpenID Connect Strategy MK2 for OmniAuth}
   spec.description   = %q{OpenID Connect Strategy MK2 for OmniAuth which is fully compliant with devise and rails and currently maintained. Derived from jjbohn's work which is not actively maintained}
   spec.homepage      = "https://github.com/hhorikawa/omniauth-openid-connect"
@@ -62,19 +64,19 @@ Gem::Specification.new do |spec|
   # 'jwt' と 'json-jwt' があるが, 'jwt' が多数派.
   spec.add_dependency 'jwt', '~> 1.5'
 
-  spec.add_development_dependency "bundler", "~> 1.5"
+  spec.add_development_dependency 'bundler', '~> 1.5'
   # Ruby 2.2からバンドルされる. gem依存不要
-  #spec.add_development_dependency "minitest"
-  spec.add_development_dependency "mocha"
-  spec.add_development_dependency "guard"
-  spec.add_development_dependency "guard-minitest"
-  spec.add_development_dependency "guard-bundler"
-  spec.add_development_dependency "rake"
+  #spec.add_development_dependency 'minitest'
+  spec.add_development_dependency 'mocha'
+  spec.add_development_dependency 'guard'
+  spec.add_development_dependency 'guard-minitest'
+  spec.add_development_dependency 'guard-bundler'
+  spec.add_development_dependency 'rake'
   # v0.15.0 が出てる
-  spec.add_development_dependency "simplecov", '~> 0.13.0'
-  spec.add_development_dependency "pry"
+  spec.add_development_dependency 'simplecov', '~> 0.13.0'
+  spec.add_development_dependency 'pry'
   # 'coveralls' v0.8.21 depends on simplecov ~> 0.14.1
   # coverall v0.8.22 depends on simplecov ~> 0.16.1
-  #spec.add_development_dependency "coveralls"
-  spec.add_development_dependency "faker"
+  #spec.add_development_dependency 'coveralls'
+  spec.add_development_dependency 'faker'
 end
