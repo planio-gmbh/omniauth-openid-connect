@@ -258,8 +258,8 @@ module OmniAuth
         fail!(:timeout, e)
       rescue ::SocketError => e
         fail!(:failed_to_connect, e)
-      rescue StandardError => e
-        fail!(:token_verification_failed, e)
+#      rescue StandardError => e
+#        fail!(:token_verification_failed, e)
       end
 
 
