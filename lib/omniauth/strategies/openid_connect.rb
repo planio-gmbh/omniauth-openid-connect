@@ -120,6 +120,7 @@ module OmniAuth
       # Any field from user_info to be processed as UID
       option :uid_field, 'sub'
 
+      # [Rack::OAuth2::AccessToken] アクセストークン
       attr_reader :access_token
 
       uid do
@@ -355,6 +356,9 @@ module OmniAuth
         client.authorization_code = request.params.delete('code')
 
         # token_endpoint に対して http request を行う.
+        # TODO: Implicit Flow では, id_token と同時にアクセストークンを得るた
+        #       め, このコードを skip する必要がある.
+        
         # 仕様では grant_type, code, redirect_uri パラメータ
         opts = {
           # scope: (options.scope if options.send_scope_to_token_endpoint),
@@ -368,6 +372,14 @@ module OmniAuth
         end
         actoken = client.access_token! opts
 
+        # Implicit Flow では, id_token が改竄されているリスクがある。
+        # そのため, IdP の公開鍵によって, 署名を検証しなければならない.
+        # JWT ヘッダの鍵アルゴリズムが 'none' 場合は, 失敗にしなければならない.
+        # => 'json-jwt' パッケージの JWS#verify!() は 'none' を適切に弾いてくれ
+        #    る.
+        # TODO: 下の header で鍵を選ぶのではなく, 公開鍵決め打ちにしなければな
+        #       らない.
+        
         # 鍵を選ぶ。"{ヘッダ部}.{ペイロード部}.{シグネチャ部}" と、ピリオドで
         # 区切られている。ヘッダ部にアルゴリズムが書かれている.
         header = ::JWT.decoded_segments(actoken.id_token, false)[0]
@@ -375,7 +387,7 @@ module OmniAuth
 
         # このなかで署名の検証も行う. => JSON::JWS::VerificationFailed
         id_token = ::OpenIDConnect::ResponseObject::IdToken.decode(
-          actoken.id_token, key)
+                       actoken.id_token, key)
         # こちらは内容の検証.
         id_token.verify!(
           issuer: issuer,
