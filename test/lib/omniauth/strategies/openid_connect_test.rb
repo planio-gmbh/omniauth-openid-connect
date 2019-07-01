@@ -12,6 +12,18 @@ module OmniAuth
         assert_equal '/token', strategy.options.client_options.token_endpoint
       end
 
+      
+      def test_uid
+        assert_equal user_info.sub, strategy.uid
+
+        strategy.options.uid_field = 'preferred_username'
+        assert_equal user_info.preferred_username, strategy.uid
+
+        strategy.options.uid_field = 'something'
+        assert_equal user_info.sub, strategy.uid
+      end
+
+      
       ##################################################################
       # request phase
       
@@ -23,7 +35,18 @@ module OmniAuth
         strategy.request_phase
       end
 
-  
+
+      def test_request_phase_with_params
+        expected_redirect = /^https:\/\/example\.com\/authorize\?claims_locales=es&client_id=1234&login_hint=john.doe%40example.com&nonce=\w{32}&response_type=code&scope=openid&state=\w{32}&ui_locales=en$/
+        strategy.options.issuer = 'example.com'
+        strategy.options.client_options.host = 'example.com'
+        request.stubs(:params).returns('login_hint' => 'john.doe@example.com', 'ui_locales' => 'en', 'claims_locales' => 'es')
+
+        strategy.expects(:redirect).with(regexp_matches(expected_redirect))
+        strategy.request_phase
+      end
+
+      
       def test_request_phase_with_discovery
         expected_redirect = /^https:\/\/example\.com\/authorization\?client_id=1234&nonce=[\w\d]{32}&response_type=code&scope=openid&state=[\w\d]{32}$/
         strategy.options.client_options.host = 'example.com'
@@ -65,6 +88,9 @@ module OmniAuth
         strategy.options.client_options.host = 'example.com'
         strategy.expects(:redirect).with(regexp_matches(expected_redirect))
         strategy.request_phase
+
+        assert_equal strategy.options.client_options.jwks_uri, 'https://example.com/jwks'
+        assert_nil strategy.options.client_options.end_session_endpoint  ●ほかのメソッドの紛れ?
       end
 
       def test_request_phase_with_ux
@@ -96,11 +122,68 @@ module OmniAuth
         strategy.request_phase
       end
 
-      
-      def test_uid
-        assert_equal user_info.sub, strategy.uid
+
+      ##################################################################
+      # logout phase
+
+      def test_logout_phase_with_discovery
+        expected_redirect = %r{^https:\/\/example\.com\/logout$}
+        strategy.options.client_options.host = 'example.com'
+        strategy.options.discovery = true
+
+        issuer = stub('OpenIDConnect::Discovery::Issuer')
+        issuer.stubs(:issuer).returns('https://example.com/')
+        ::OpenIDConnect::Discovery::Provider.stubs(:discover!).returns(issuer)
+
+        config = stub('OpenIDConnect::Discovery::Provder::Config')
+        config.stubs(:authorization_endpoint).returns('https://example.com/authorization')
+        config.stubs(:token_endpoint).returns('https://example.com/token')
+        config.stubs(:userinfo_endpoint).returns('https://example.com/userinfo')
+        config.stubs(:jwks_uri).returns('https://example.com/jwks')
+        config.stubs(:end_session_endpoint).returns('https://example.com/logout')
+        ::OpenIDConnect::Discovery::Provider::Config.stubs(:discover!).with('https://example.com/').returns(config)
+
+        request.stubs(:path_info).returns('/auth/openid_connect/logout')
+
+        strategy.expects(:redirect).with(regexp_matches(expected_redirect))
+        strategy.other_phase
       end
 
+      def test_logout_phase_with_discovery_and_post_logout_redirect_uri
+        expected_redirect = 'https://example.com/logout?post_logout_redirect_uri=https%3A%2F%2Fmysite.com'
+        strategy.options.client_options.host = 'example.com'
+        strategy.options.discovery = true
+        strategy.options.post_logout_redirect_uri = 'https://mysite.com'
+
+        issuer = stub('OpenIDConnect::Discovery::Issuer')
+        issuer.stubs(:issuer).returns('https://example.com/')
+        ::OpenIDConnect::Discovery::Provider.stubs(:discover!).returns(issuer)
+
+        config = stub('OpenIDConnect::Discovery::Provder::Config')
+        config.stubs(:authorization_endpoint).returns('https://example.com/authorization')
+        config.stubs(:token_endpoint).returns('https://example.com/token')
+        config.stubs(:userinfo_endpoint).returns('https://example.com/userinfo')
+        config.stubs(:jwks_uri).returns('https://example.com/jwks')
+        config.stubs(:end_session_endpoint).returns('https://example.com/logout')
+        ::OpenIDConnect::Discovery::Provider::Config.stubs(:discover!).with('https://example.com/').returns(config)
+
+        request.stubs(:path_info).returns('/auth/openid_connect/logout')
+
+        strategy.expects(:redirect).with(expected_redirect)
+        strategy.other_phase
+      end
+
+      def test_logout_phase
+        strategy.options.issuer = 'example.com'
+        strategy.options.client_options.host = 'example.com'
+
+        request.stubs(:path_info).returns('/auth/openid_connect/logout')
+
+        strategy.expects(:call_app!)
+        strategy.other_phase
+      end
+
+      
       ##################################################################
       # callback phase
 
@@ -197,11 +280,23 @@ module OmniAuth
         request.stubs(:params).returns('code' => code,'state' => 'foobar')
         request.stubs(:path_info).returns('')
 
-        strategy.call!('rack.session' => {'omniauth.state' => state, 'omniauth.nonce' => nonce})
+        strategy.call!('rack.session' => { 'omniauth.state' => state, 'omniauth.nonce' => nonce })
         result = strategy.callback_phase
-
         assert result.kind_of?(Array)
         assert result.first == 302, 'Expecting redirect to /callback/failure'
+        strategy.expects(:fail!)
+        strategy.callback_phase
+      end
+
+      def test_callback_phase_without_code
+        state = SecureRandom.hex(16)
+        nonce = SecureRandom.hex(16)
+        request.stubs(:params).returns('state' => state)
+        request.stubs(:path_info).returns('')
+
+        strategy.call!('rack.session' => { 'omniauth.state' => state, 'omniauth.nonce' => nonce })
+        strategy.expects(:fail!)
+        strategy.callback_phase
       end
 
 
@@ -254,7 +349,22 @@ module OmniAuth
         strategy.callback_phase
       end
 
-  
+      def test_callback_phase_with_rack_oauth2_client_error
+        code = SecureRandom.hex(16)
+        state = SecureRandom.hex(16)
+        nonce = SecureRandom.hex(16)
+        request.stubs(:params).returns('code' => code, 'state' => state)
+        request.stubs(:path_info).returns('')
+
+        strategy.options.issuer = 'example.com'
+
+        strategy.stubs(:access_token).raises(::Rack::OAuth2::Client::Error.new('error', error: 'Unknown'))
+        strategy.call!('rack.session' => { 'omniauth.state' => state, 'omniauth.nonce' => nonce })
+        strategy.expects(:fail!)
+        strategy.callback_phase
+      end
+
+
       def test_info
         info = strategy.info
         assert_equal user_info.name, info[:name]
@@ -330,14 +440,15 @@ module OmniAuth
 
       def test_state
         strategy.options.state = lambda { 42 }
-        session = { 'state' => 42 }
 
-        expected_redirect = /&state=/
+        expected_redirect = /&state=42/
         strategy.options.issuer = 'http://example.com'
         strategy.options.client_options.host = 'example.com'
         strategy.expects(:redirect).with(regexp_matches(expected_redirect))
         strategy.request_phase
-        
+
+        session = { 'state' => 42 }
+
         # this should succeed as the correct state is passed with the request
         test_callback_phase(session, 'state' => 42)
 
@@ -345,12 +456,33 @@ module OmniAuth
         code = SecureRandom.hex(16)
         request.stubs(:params).returns('code' => code, 'state' => 43)
         request.stubs(:path_info).returns('')
-        strategy.call!('rack.session' => session)
 
+        strategy.call!('rack.session' => session)
         result = strategy.callback_phase
+        assert result.kind_of?(Array)
+        assert result.first == 302, 'Expecting redirect to /auth/failure'
+        strategy.expects(:fail!)
+        strategy.callback_phase
+      end
+
+
+      def test_dynamic_state
+        # Stub request parameters
+        Strategy.send(:define_method, 'env', -> { { QUERY_STRING: { state: 'abc', client_id: '123' } } })
 
         assert result.kind_of?(Array)
         assert result.first == 302, 'Expecting redirect to /auth/failure'
+
+        strategy.options.state = lambda { |env|
+          # Get params from request, e.g. CGI.parse(env['QUERY_STRING'])
+          env[:QUERY_STRING][:state] + env[:QUERY_STRING][:client_id]
+        }
+
+        expected_redirect = /&state=abc123/
+        strategy.options.issuer = 'example.com'
+        strategy.options.client_options.host = 'example.com'
+        strategy.expects(:redirect).with(regexp_matches(expected_redirect))
+        strategy.request_phase
       end
 
 
