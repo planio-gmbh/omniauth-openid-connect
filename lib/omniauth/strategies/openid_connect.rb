@@ -1,10 +1,13 @@
 # -*- coding:utf-8 -*-
+# frozen_string_literal: true
 
+#require 'addressable/uri'
 require 'timeout'
 require 'net/http'
 require 'omniauth'
 require 'openid_connect'
 require 'jwt'
+#require 'forwardable'
 
 
 module OmniAuth
@@ -18,40 +21,50 @@ module OmniAuth
       # - openid_connect が rack-oauth2, json-jwt に依存している
       # - 他方, omniauth-oauth2 は, oauth2, jwt に依存. その書き換えも必要.
       include OmniAuth::Strategy
+      #extend Forwardable
+
+      #def_delegator :request, :params
+
+      # 必須. こちらが route URL の provider 名になる
+      option :name, 'openid_connect'
 
       # OpenIDConnect::Client.new() に渡されるオプション.
-      option :client_options,
-             # Authentication Request: [REQUIRED] client_id
-             identifier: nil,
+      option(:client_options,
+                        # Authentication Request: [REQUIRED] client_id
+                        identifier: nil,
 
-             # Authentication Request: [REQUIRED] client_secret
-             secret: nil,
+                        # Authentication Request: [REQUIRED] client_secret
+                        secret: nil,
 
-             # Authentication Request: [REQUIRED]
-             redirect_uri: nil,
+                        # Authentication Request: [REQUIRED]
+                        redirect_uri: nil,
 
-             # [REQUIRED] authorization_endpoint のホスト.
-             scheme: 'https',
-             host: nil,
-             port: nil,
+                        # [REQUIRED] authorization_endpoint のホスト.
+                        scheme: 'https',
+                        host: nil,
+                        port: nil,
 
-             # discovery: falseの時に指定.
-             authorization_endpoint: '/authorize',
-             token_endpoint: '/token',
-             userinfo_endpoint: '/userinfo',
-             expires_in: nil
+                        # discovery: falseの時に指定.
+                        authorization_endpoint: '/authorize', # client_options に渡す
+                        token_endpoint: '/token', # client_options に渡す
+                        userinfo_endpoint: '/userinfo', # client_options に渡す
+                        jwks_uri: '/jwk', # OpenIDConnect::Client では無視される
+                        expires_in: nil,   # client_options に渡す
+                        end_session_endpoint: nil # OpenIDConnect::Client では無視される
+            )
 
       # 指定しなかった場合は, client_options.{scheme, host, port} から作られる.
       option :issuer
 
       option :discovery, false
 
+      # Required if you don't use 'discovery'.
       option :client_jwk_signing_key
       option :client_x509_signing_key
 
-      # 必須. こちらが route URL の provider 名になる
-      option :name, nil
-
+      ##############################
+      # Authentication Request
+      
       # Authentication Request: [REQUIRED]
       # 'openid' は必須.
       # 加えて, OpenID Connect で定義: 'profile', 'email', 'address', 'phone',
@@ -63,12 +76,10 @@ module OmniAuth
       # See https://openid.net/specs/oauth-v2-multiple-response-types-1_0.html
       # ただし, Webアプリでは 'code' 決め打ちでよい.
       # See http://oauth.jp/blog/2015/01/06/oauth2-multiple-response-type/
-      option :response_type, "code"
+      option :response_type, 'code'
 
       # Authentication Request: [RECOMMENDED]
-      # 次のいずれか;
-      #   1. call()メソッドを持つもの. => new_state() から呼び出される.
-      #   2. 文字列
+      # call()メソッドを持つこと. => new_state() から呼び出される.
       option :state
 
       # Authentication Request: [NOT RECOMMENDED]
@@ -82,13 +93,17 @@ module OmniAuth
       option :send_nonce, true
 
       # Authentication Request: [OPTIONAL]
-      # [:page, :popup, :touch, :wap]
+      # value is one of [:page, :popup, :touch, :wap]
       option :display, nil
 
       # Authentication Request: [OPTIONAL]
-      # [:none, :login, :consent, :select_account]
+      # value is one of [:none, :login, :consent, :select_account]
       option :prompt, nil
 
+      # Restrict user domain name.
+      # See https://developers.google.com/identity/protocols/OpenIDConnect#hd-param
+      option :hd, nil
+      
       # Authentication Request: [OPTIONAL]
       option :max_age
 
@@ -103,28 +118,36 @@ module OmniAuth
       # Must verify the id_token. So remove this option.
       #option :verify_id_token, nil
 
-      option :hd, nil # what's this?
       option :ux
 
-      # what's this?
-      # option :send_scope_to_token_endpoint, true
+      ##############################
+      # token_endpoint
 
-      # Azure ADは, token_endpoint にも client_id, client_secret を送信しなけ
-      # れば失敗する
-      option :send_client_secret_to_token_endpoint, false
+      # token_endpoint: 仕様に準拠しない IdP 対策か。どの製品?
+      # 仕様では grant_type, code, redirect_uri パラメータのみ.
+      option :send_scope_to_token_endpoint, false
 
       # token_endpoint へのリクエスト.
       # default 値: :basic
       option :client_auth_method
 
+      # Azure ADは, token_endpoint にも client_id, client_secret を送信しなけ
+      # れば失敗する
+      option :send_client_secret_to_token_endpoint, false
+
       # Any field from user_info to be processed as UID
       option :uid_field, 'sub'
 
+      option :post_logout_redirect_uri
+      
       # [Rack::OAuth2::AccessToken] アクセストークン
       attr_reader :access_token
 
-      uid do
-        user_info.send(options.uid_field.to_s)
+      def uid
+        user_info.public_send(options.uid_field.to_s)
+      rescue NoMethodError
+        log :warn, "User sub:#{user_info.sub} missing info field: #{options.uid_field}"
+        user_info.sub
       end
 
       info do
@@ -137,7 +160,7 @@ module OmniAuth
           gender: user_info.gender,
           image: user_info.picture,
           phone: user_info.phone_number,
-          urls: { website: user_info.website }
+          urls: { website: user_info.website },
         }
       end
 
@@ -193,16 +216,17 @@ module OmniAuth
       # @override
       # request_phase() と callback_phase() の開始前に呼び出される.
       def setup_phase
-        super
+        #super    options[:setup] は無視するか.
+        
         @issuer = if options.issuer
           options.issuer
         else
           client_options.scheme + '://' + client_options.host +
-            (client_options.port ? client_options.port.to_s : '')
+                (client_options.port ? client_options.port.to_s : '')
         end
         unless (uri = URI.parse(@issuer)) &&
-          ['http', 'https'].include?(uri.scheme)
-          raise ArgumentError, "invalid issuer"
+               ['http', 'https'].include?(uri.scheme)
+          raise ArgumentError, "invalid issuer URI scheme"
         end
 
         # OpenID Connect Discovery 1.0 の OpenID Provider Issuer Discovery
@@ -215,13 +239,14 @@ module OmniAuth
           WebFinger.url_builder = URI::HTTP
           SWD.url_builder = URI::HTTP
         end
-
         discover! if options.discovery
       end
 
 
       # @override
       def request_phase
+        #discover! ここで呼び出してはいけない. discovery: false対応.
+        
         # client() 内で client_options から OpenIDConnect::Client を構築.
         redirect client.authorization_uri(authorize_params)
       end
@@ -244,7 +269,7 @@ module OmniAuth
             request.params['state'] != session.delete('omniauth.state'))
           # RFC 6749 4.1.2: クライアントからの認可リクエストに stateパラメータ
           # が含まれていた場合は, そのまま返ってくる. [REQUIRED]
-          raise CallbackError.new(:csrf_detected, "'state' parameter error")
+          raise CallbackError.new(:csrf_detected, "Invalid 'state' parameter")
         end
 
         # request.params["code"] のチェック, id_token の取得もこの中で.
@@ -253,7 +278,7 @@ module OmniAuth
         super
       rescue OmniAuth::OpenIDConnect::MissingCodeError => e
         fail!(:missing_code, e)
-      rescue CallbackError => e
+      rescue CallbackError, ::Rack::OAuth2::Client::Error => e
         fail!(e.error, e)
       rescue ::Timeout::Error, ::Errno::ETIMEDOUT => e
         fail!(:timeout, e)
@@ -261,6 +286,29 @@ module OmniAuth
         fail!(:failed_to_connect, e)
 #      rescue StandardError => e
 #        fail!(:token_verification_failed, e)
+      end
+
+
+      def other_phase
+        if logout_path_pattern.match?(current_path)
+          #options.issuer = issuer if options.issuer.to_s.empty?
+          #discover!
+          setup_phase()  # issuer の設定と discover!
+          return redirect(end_session_uri) if end_session_uri
+        end
+        call_app!
+      end
+
+      #def authorization_code  ●これは不味い. params.delete() しないと.
+      #  params['code']
+      #end
+
+      def end_session_uri
+        return unless end_session_endpoint_is_valid?
+
+        end_session_uri = URI(client_options.end_session_endpoint)
+        end_session_uri.query = encoded_post_logout_redirect_uri
+        end_session_uri.to_s
       end
 
 
@@ -276,15 +324,18 @@ module OmniAuth
           # Rack::OAuth2::Client
           response_type: options.response_type,
 
-          state: new_state,
+          state: new_state(),
           #response_mode: options.response_mode,    [NOT RECOMMENDED]
           nonce: (new_nonce if options.send_nonce),
+          hd: options.hd,
         }
-        %i[display max_age acr_values hd ux].each do |key|
+
+        %i[display max_age acr_values ux].each do |key|
           opts[key] = options.send(key)
         end
 
-        ['ui_locales', 'id_token_hint', 'login_hint', # OpenID Connect Core 1.0
+        # end-user's preferred params.
+        ['ui_locales', 'id_token_hint', 'login_hint', 'claims_locales', # OpenID Connect Core 1.0
          # extensions
          'email', 'realm', 'cid', 'chem'].each do |key|
           opts[key.to_sym] = request.params[key] if request.params[key]
@@ -297,7 +348,7 @@ module OmniAuth
       def public_key(kid = nil)
         if options.discovery
           # ここで jwks_uri へのアクセスが発生.
-          config.jwks # setのままでOK
+          config().jwks # setのままでOK
           # key = config.jwks().select{|k| k["kid"] == kid}.try(:first)
           # JSON::JWK.new(key).to_key
         else
@@ -312,16 +363,22 @@ module OmniAuth
         end
       end
 
-      private ##############################################
+    private ##############################################
 
       # @return [String] options.issuer または client_options からつくった issuer
+      # 設定は setup_phase() 内で行う.
       attr_reader :issuer
 
       def discover!
+        raise "bug" if !options.discovery
+        
         # config() 内で, issuer を引数にして, 実際に discover! している.
         client_options.authorization_endpoint = config().authorization_endpoint
         client_options.token_endpoint = config().token_endpoint
         client_options.userinfo_endpoint = config().userinfo_endpoint
+        client_options.expires_in = config().expires_in
+        #client_options.jwks_uri = config.jwks_uri
+        #client_options.end_session_endpoint = config.end_session_endpoint if config.respond_to?(:end_session_endpoint)
       end
 
 
@@ -330,10 +387,11 @@ module OmniAuth
         @user_info ||= access_token.userinfo!
       end
 
-
       # Google sends the string "true" as the value for the field 
       # 'email_verified' while a boolean is expected.
       def fix_user_info(user_info)
+        raise TypeError if !user_info
+        
         if user_info.email_verified.is_a? String
           user_info.email_verified = 
                             (user_info.email_verified.casecmp("true") == 0)
@@ -341,12 +399,13 @@ module OmniAuth
         #user_info.gender = nil # in case someone picks something else than male or female, we don't need it anyway
         user_info
       end
-
+      
 
       # @override
       # callback_phase() から呼び出される.
       # @return [Rack::OAuth2::AccessToken] アクセストークン
       #         'oauth2'パッケージの OAuth2::AccessToken クラスとは別物.
+      # @raise [OmniAuth::OpenIDConnect::MissingCodeError] code がない.
       def build_access_token
         unless request.params["code"]
           raise OmniAuth::OpenIDConnect::MissingCodeError.new(request.params["error"])
@@ -361,7 +420,7 @@ module OmniAuth
         
         # 仕様では grant_type, code, redirect_uri パラメータ
         opts = {
-          # scope: (options.scope if options.send_scope_to_token_endpoint),
+          scope: (options.scope if options.send_scope_to_token_endpoint),
           client_auth_method: options.client_auth_method,
         }
         if options.send_client_secret_to_token_endpoint
@@ -392,7 +451,8 @@ module OmniAuth
         id_token.verify!(
           issuer: issuer,
           client_id: client_options.identifier,
-          nonce: session.delete('omniauth.nonce'))
+          nonce: session.delete('omniauth.nonce')
+        )
 
         actoken
       end
@@ -404,8 +464,13 @@ module OmniAuth
 
 
       def new_state
-        state = nil
-        state = options.state.call if options.state.respond_to? :call
+        raise ArgumentError if !options.state.respond_to?(:call)
+        
+        state = if options.state.arity == 1
+                  options.state.call(env)
+                else
+                  options.state.call
+                end
         session['omniauth.state'] = state || SecureRandom.hex(16)
       end
 
@@ -421,7 +486,7 @@ module OmniAuth
           @env ||= {}
           @env["rack.session"] ||= {}
         end
-        super # return @env['rack.session']
+        super # just, return @env['rack.session']
       end
 
 
@@ -429,16 +494,42 @@ module OmniAuth
       # RSAの場合は, 認証サーバの公開鍵を使う
       def key_or_secret header
         case header['alg'].to_sym
-          when :HS256, :HS384, :HS512
-            return client_options.secret
-          when :RS256, :RS384, :RS512
-            # public_key() のなかで, :client_jwk_signing_key と
-            # :client_x509_signing_key を参照する
-            return public_key(header['kid'])
-          else
-            # ES256 : ECDSA using P-256 curve and SHA-256 hash
-            raise ArgumentError, "unsupported alg: #{header['alg']}"
+        when :HS256, :HS384, :HS512
+          client_options.secret
+        when :RS256, :RS384, :RS512
+          # public_key() のなかで, :client_jwk_signing_key と
+          # :client_x509_signing_key を参照する
+          public_key(header['kid'])
+        else
+          # ES256 : ECDSA using P-256 curve and SHA-256 hash
+          raise ArgumentError, "unsupported alg: #{header['alg']}"
         end
+      end
+
+=begin
+ params で redirect_uri を与えてはならない.
+      def redirect_uri
+        return client_options.redirect_uri unless params['redirect_uri']
+
+        "#{ client_options.redirect_uri }?redirect_uri=#{ CGI.escape(params['redirect_uri']) }"
+      end
+=end
+      
+      def encoded_post_logout_redirect_uri
+        return unless options.post_logout_redirect_uri
+
+        URI.encode_www_form(
+          post_logout_redirect_uri: options.post_logout_redirect_uri
+        )
+      end
+
+      def end_session_endpoint_is_valid?
+        client_options.end_session_endpoint &&
+          client_options.end_session_endpoint =~ URI::DEFAULT_PARSER.make_regexp
+      end
+
+      def logout_path_pattern
+        @logout_path_pattern ||= %r{\A#{Regexp.quote(request_path)}(/logout)}
       end
 
 
@@ -447,6 +538,8 @@ module OmniAuth
         attr_accessor :error_reason, :error_uri
 
         def initialize(error, error_reason = nil, error_uri = nil)
+          raise TypeError if !error
+          
           @error = error
           self.error_reason = error_reason
           self.error_uri = error_uri
