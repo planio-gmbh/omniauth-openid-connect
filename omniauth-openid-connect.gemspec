@@ -31,11 +31,11 @@ Gem::Specification.new do |spec|
     - omniauth-paypal-oauth2   # omniauth-paypal は古い.
       https://rubygems.org/gems/omniauth-paypal-oauth2/
 
-    omniauth-facebook (4.0.0)
-      omniauth-oauth2 (~> 1.2)
-    omniauth-oauth2 (1.4.0)
-      oauth2 (~> 1.0)
-      omniauth (~> 1.2)
+    omniauth-facebook (4.0.0)    v5.0.0
+      omniauth-oauth2 (~> 1.2)     ~> 1.2
+    omniauth-oauth2 (1.4.0)      v1.6.0
+      oauth2 (~> 1.0)              ~> 1.1
+      omniauth (~> 1.2)            ~> 1.9
     openid_connect (1.1.3)
       activemodel
       attr_required (>= 1.0.0)
@@ -47,9 +47,9 @@ Gem::Specification.new do |spec|
       validate_email
       validate_url
       webfinger (>= 1.0.1)
-    omniauth (1.6.1)
-      hashie (>= 3.4.6, < 3.6.0)
-      rack (>= 1.6.2, < 3)
+    omniauth (1.6.1)               v1.9.0
+      hashie (>= 3.4.6, < 3.6.0)       < 3.7.0, >= 3.4.6
+      rack (>= 1.6.2, < 3)             < 3, >= 1.6.2
 =end
   
   # symbolize_keys() 
@@ -64,9 +64,9 @@ Gem::Specification.new do |spec|
 
   # 'jwt' と 'json-jwt' があるが, 'jwt' が多数派.
   # jwt 2.0.0 が出ているが, oauth2 1.4.0 depends on jwt ~> 1.0
-  #                       'oauth2' v1.4.1 depends on jwt<3.0, >=1.0
-  #   => バージョンを細かく指定しない.
-  spec.add_dependency 'jwt', '>= 1.5', '< 3.0'
+  #                        'oauth2' v1.4.1 depends on jwt<3.0, >=1.0
+  # decoded_segments() が jwt v2.0.0 で削除されている。
+  spec.add_dependency 'jwt', '~> 1.5.6'
 
   #spec.add_development_dependency 'bundler', '~> 1.5'
 
