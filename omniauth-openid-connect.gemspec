@@ -66,7 +66,7 @@ Gem::Specification.new do |spec|
   # jwt 2.0.0 が出ているが, oauth2 1.4.0 depends on jwt ~> 1.0
   #                       'oauth2' v1.4.1 depends on jwt<3.0, >=1.0
   #   => バージョンを細かく指定しない.
-  spec.add_dependency 'jwt', '< 3.0, >= 1.5'
+  spec.add_dependency 'jwt', '>= 1.5', '< 3.0'
 
   #spec.add_development_dependency 'bundler', '~> 1.5'
 
@@ -84,9 +84,10 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency 'mocha'
 
   spec.add_development_dependency 'rake'
-  spec.add_development_dependency 'rubocop'
+  # mocha が制約
+  spec.add_development_dependency 'rubocop', '<= 0.58.2'
   # v0.15.0 が出てる
-  spec.add_development_dependency 'simplecov', '~> 0.13.0'
+  spec.add_development_dependency 'simplecov', '~> 0.16.1'
   # pry は廃れた.
   #spec.add_development_dependency 'pry'
 end
