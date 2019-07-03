@@ -66,7 +66,7 @@ Gem::Specification.new do |spec|
   # jwt 2.0.0 が出ているが, oauth2 1.4.0 depends on jwt ~> 1.0
   #                        'oauth2' v1.4.1 depends on jwt<3.0, >=1.0
   # decoded_segments() が jwt v2.0.0 で削除されている。
-  spec.add_dependency 'jwt', '~> 1.5.6'
+  #spec.add_dependency 'jwt', '~> 1.5.6'
 
   #spec.add_development_dependency 'bundler', '~> 1.5'
 

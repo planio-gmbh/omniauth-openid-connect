@@ -6,7 +6,7 @@ require 'timeout'
 require 'net/http'
 require 'omniauth'
 require 'openid_connect'
-require 'jwt'
+#require 'jwt'
 #require 'forwardable'
 
 
@@ -354,10 +354,10 @@ module OmniAuth
         else
           if options.client_jwk_signing_key
             return OmniAuth::OpenIDConnect.parse_jwk_key(
-              options.client_jwk_signing_key, kid)
+                     options.client_jwk_signing_key, kid)
           elsif options.client_x509_signing_key
             return OmniAuth::OpenIDConnect.parse_x509_key(
-              options.client_x509_signing_key, kid)
+                     options.client_x509_signing_key, kid)
           end
           raise ArgumentError, "internal error: missing RSA public key"
         end
@@ -431,17 +431,18 @@ module OmniAuth
         end
         actoken = client.access_token! opts
 
-        # Implicit Flow では, id_token が改竄されているリスクがある。
-        # そのため, IdP の公開鍵によって, 署名を検証しなければならない.
-        # JWT ヘッダの鍵アルゴリズムが 'none' 場合は, 失敗にしなければならない.
-        # => 'json-jwt' パッケージの JWS#verify!() は 'none' を適切に弾いてくれ
-        #    る.
+        # Implicit Flow
+        #   id_token が改竄されているリスクがある。
+        #   そのため, IdP の公開鍵によって, 署名を検証しなければならない.
+        #   JWT ヘッダの鍵アルゴリズムが 'none' 場合は, 失敗にしなければならない.
         # TODO: 下の header で鍵を選ぶのではなく, 公開鍵決め打ちにしなければな
         #       らない.
+        # /Implicit Flow
         
         # 鍵を選ぶ。"{ヘッダ部}.{ペイロード部}.{シグネチャ部}" と、ピリオドで
         # 区切られている。ヘッダ部にアルゴリズムが書かれている.
-        header = ::JWT.decoded_segments(actoken.id_token, false)[0]
+        header = (JSON::JWS.decode_compact_serialized actoken.id_token, :skip_verification).header
+        #header = ::JWT.decoded_segments(actoken.id_token, false)[0]
         key = key_or_secret header
 
         # このなかで署名の検証も行う. => JSON::JWS::VerificationFailed
@@ -464,14 +465,16 @@ module OmniAuth
 
 
       def new_state
-        raise ArgumentError if !options.state.respond_to?(:call)
-        
-        state = if options.state.arity == 1
-                  options.state.call(env)
+        session['omniauth.state'] =
+                if options.state.respond_to?(:call)
+                  if options.state.arity == 1
+                    options.state.call(env)
+                  else
+                    options.state.call
+                  end
                 else
-                  options.state.call
+                  SecureRandom.hex(16)
                 end
-        session['omniauth.state'] = state || SecureRandom.hex(16)
       end
 
 
@@ -493,6 +496,8 @@ module OmniAuth
       # HMAC-SHA256 の場合は, client_secret を共通鍵とする
       # RSAの場合は, 認証サーバの公開鍵を使う
       def key_or_secret header
+        raise TypeError if !header
+        
         case header['alg'].to_sym
         when :HS256, :HS384, :HS512
           client_options.secret
