@@ -28,7 +28,7 @@ module OmniAuth
       # request phase
       
       def test_request_phase
-        expected_redirect = /^https:\/\/example\.com\/authorize\?client_id=1234&nonce=[\w\d]{32}&response_type=code&scope=openid&state=[\w\d]{32}$/
+        expected_redirect = /^https:\/\/example\.com\/authorize\?client_id=1234&nonce=[\w]{32}&response_type=code&scope=openid&state=[\w]{32}$/
         strategy.options.issuer = 'https://example.com'
         strategy.options.client_options.host = 'example.com'
         strategy.expects(:redirect).with(regexp_matches(expected_redirect))
@@ -48,7 +48,7 @@ module OmniAuth
 
       
       def test_request_phase_with_discovery
-        expected_redirect = /^https:\/\/example\.com\/authorization\?client_id=1234&nonce=[\w\d]{32}&response_type=code&scope=openid&state=[\w\d]{32}$/
+        expected_redirect = /^https:\/\/example\.com\/authorization\?client_id=1234&nonce=[\w]{32}&response_type=code&scope=openid&state=[\w]{32}$/
         strategy.options.client_options.host = 'example.com'
         strategy.options.discovery = true
 
@@ -72,7 +72,7 @@ module OmniAuth
 
 
       def test_request_phase_with_prompt
-        expected_redirect = /^https:\/\/example\.com\/authorize\?client_id=1234&nonce=[\w\d]{32}&prompt=login%2Cselect_account&response_type=code&scope=openid&state=[\w\d]{32}$/
+        expected_redirect = /^https:\/\/example\.com\/authorize\?client_id=1234&nonce=[\w]{32}&prompt=login%2Cselect_account&response_type=code&scope=openid&state=[\w]{32}$/
         strategy.options.prompt = 'login,select_account'
         strategy.options.issuer = 'https://example.com'
         strategy.options.client_options.host = 'example.com'
@@ -81,7 +81,7 @@ module OmniAuth
       end
 
       def test_request_phase_with_prompt_and_id_token_hint
-        expected_redirect = /^https:\/\/example\.com\/authorize\?client_id=1234&id_token_hint=insert_valid_id_token_here&nonce=[\w\d]{32}&prompt=login&response_type=code&scope=openid&state=[\w\d]{32}$/
+        expected_redirect = /^https:\/\/example\.com\/authorize\?client_id=1234&id_token_hint=insert_valid_id_token_here&nonce=[\w]{32}&prompt=login&response_type=code&scope=openid&state=[\w]{32}$/
         strategy.options.prompt = 'login'
         request.stubs(:params).returns('id_token_hint' => 'insert_valid_id_token_here')
         strategy.options.issuer = 'https://example.com'
@@ -94,7 +94,7 @@ module OmniAuth
       end
 
       def test_request_phase_with_ux
-        expected_redirect = /^https:\/\/example\.com\/authorize\?client_id=1234&nonce=[\w\d]{32}&response_type=code&scope=openid&state=[\w\d]{32}&ux=signup%2Ccustom_message$/
+        expected_redirect = /^https:\/\/example\.com\/authorize\?client_id=1234&nonce=[\w]{32}&response_type=code&scope=openid&state=[\w]{32}&ux=signup%2Ccustom_message$/
         strategy.options.ux = 'signup,custom_message'
         strategy.options.issuer = 'https://example.com'
         strategy.options.client_options.host = 'example.com'
@@ -104,7 +104,7 @@ module OmniAuth
 
 
       def test_request_phase_with_ui_locales
-        expected_redirect = /^https:\/\/example\.com\/authorize\?client_id=1234&nonce=[\w\d]{32}&response_type=code&scope=openid&state=[\w\d]{32}&ui_locales=fr\+en$/
+        expected_redirect = /^https:\/\/example\.com\/authorize\?client_id=1234&nonce=[\w]{32}&response_type=code&scope=openid&state=[\w]{32}&ui_locales=fr\+en$/
         strategy.options.ui_locales = 'fr en'
         strategy.options.issuer = 'example.com'
         strategy.options.client_options.host = 'example.com'
