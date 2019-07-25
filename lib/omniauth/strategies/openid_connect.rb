@@ -30,28 +30,40 @@ module OmniAuth
 
       # OpenIDConnect::Client.new() に渡されるオプション.
       option(:client_options,
-                        # Authentication Request: [REQUIRED] client_id
-                        identifier: nil,
+                # Authentication Request: [REQUIRED] client_id
+                # Rack::OAuth2::Client
+                identifier: nil,
 
-                        # Authentication Request: [REQUIRED] client_secret
-                        secret: nil,
+                # Authentication Request: [REQUIRED] client_secret
+                # Rack::OAuth2::Client
+                secret: nil,
 
-                        # Authentication Request: [REQUIRED]
-                        redirect_uri: nil,
+                # Authentication Request: [REQUIRED]
+                # Rack::OAuth2::Client
+                redirect_uri: nil,
 
-                        # [REQUIRED] authorization_endpoint のホスト.
-                        scheme: 'https',
-                        host: nil,
-                        port: nil,
+                # [REQUIRED] authorization_endpoint のホスト.
+                # Rack::OAuth2::Client
+                scheme: 'https',
+                host: nil,
+                port: nil,
 
-                        # discovery: falseの時に指定.
-                        authorization_endpoint: '/authorize', # client_options に渡す
-                        token_endpoint: '/token', # client_options に渡す
-                        userinfo_endpoint: '/userinfo', # client_options に渡す
-                        jwks_uri: '/jwk', # OpenIDConnect::Client では無視される
-                        expires_in: nil,   # client_options に渡す
-                        end_session_endpoint: nil # OpenIDConnect::Client では無視される
+                # discovery: falseの時に指定.
+                # Rack::OAuth2::Client
+                authorization_endpoint: '/authorize', # client_options に渡す
+
+                # Rack::OAuth2::Client
+                token_endpoint: '/token', # client_options に渡す
+
+                # OpenIDConnect::Client
+                userinfo_endpoint: '/userinfo', # client_options に渡す
+
+                # OpenIDConnect::Client
+                expires_in: nil,   # client_options に渡す
             )
+
+      option :jwks_uri, '/jwk'
+      option :end_session_endpoint, nil
 
       # 指定しなかった場合は, client_options.{scheme, host, port} から作られる.
       option :issuer
@@ -376,9 +388,15 @@ module OmniAuth
         client_options.authorization_endpoint = config().authorization_endpoint
         client_options.token_endpoint = config().token_endpoint
         client_options.userinfo_endpoint = config().userinfo_endpoint
-        client_options.expires_in = config().expires_in
-        #client_options.jwks_uri = config.jwks_uri
-        #client_options.end_session_endpoint = config.end_session_endpoint if config.respond_to?(:end_session_endpoint)
+        # OpenIDConnect::Discovery::Provider::Config::Response に expires_in は
+        # ない.
+        #client_options.expires_in = config().expires_in
+
+        # client_options に jwks_uri, end_session_endpoint はない.
+        options.jwks_uri = config().jwks_uri
+        if config().respond_to?(:end_session_endpoint)
+          options.end_session_endpoint = config().end_session_endpoint
+        end
       end
 
 
