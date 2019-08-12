@@ -21,9 +21,6 @@ module OmniAuth
       # - openid_connect が rack-oauth2, json-jwt に依存している
       # - 他方, omniauth-oauth2 は, oauth2, jwt に依存. その書き換えも必要.
       include OmniAuth::Strategy
-      #extend Forwardable
-
-      #def_delegator :request, :params
 
       # 必須. こちらが route URL の provider 名になる
       option :name, 'openid_connect'
@@ -155,6 +152,7 @@ module OmniAuth
       # [Rack::OAuth2::AccessToken] アクセストークン
       attr_reader :access_token
 
+      # @override
       def uid
         user_info.public_send(options.uid_field.to_s)
       rescue NoMethodError
@@ -204,7 +202,6 @@ module OmniAuth
       end
 
 
-      # @override
       # client_options から OpenIDConnect::Client インスタンスを構築.
       # @return [OpenIDConnect::Client] サーバとのconnection
       def client
@@ -228,7 +225,7 @@ module OmniAuth
       # @override
       # request_phase() と callback_phase() の開始前に呼び出される.
       def setup_phase
-        #super    options[:setup] は無視するか.
+        super
         
         @issuer = if options.issuer
           options.issuer
@@ -324,7 +321,6 @@ module OmniAuth
       end
 
 
-      # @override
       # request_phase() から呼び出される.
       # このメソッド内部で, state値を更新する.
       # @return [Hash] パラメータ.
@@ -419,7 +415,6 @@ module OmniAuth
       end
       
 
-      # @override
       # callback_phase() から呼び出される.
       # @return [Rack::OAuth2::AccessToken] アクセストークン
       #         'oauth2'パッケージの OAuth2::AccessToken クラスとは別物.
@@ -466,6 +461,7 @@ module OmniAuth
         # このなかで署名の検証も行う. => JSON::JWS::VerificationFailed
         id_token = ::OpenIDConnect::ResponseObject::IdToken.decode(
                        actoken.id_token, key)
+        #raise session.inspect # DEBUG DEBUG DEBUG
         # こちらは内容の検証.
         id_token.verify!(
           issuer: issuer,
@@ -529,15 +525,7 @@ module OmniAuth
         end
       end
 
-=begin
- params で redirect_uri を与えてはならない.
-      def redirect_uri
-        return client_options.redirect_uri unless params['redirect_uri']
-
-        "#{ client_options.redirect_uri }?redirect_uri=#{ CGI.escape(params['redirect_uri']) }"
-      end
-=end
-      
+     
       def encoded_post_logout_redirect_uri
         return unless options.post_logout_redirect_uri
 
@@ -574,7 +562,7 @@ module OmniAuth
       end # class CallbackError
 
     end # class OpenIDConnect
-  end
-end
+  end # module Strategies
+end # module OmniAuth
 
 OmniAuth.config.add_camelization 'openid_connect', 'OpenIDConnect'
