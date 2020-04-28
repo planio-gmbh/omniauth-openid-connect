@@ -46,7 +46,7 @@ For the full low down on OpenID Connect, please check out
 
 Clone this repository:
 
-    $ git clone https://github.com/hhorikawa/omniauth-openid-connect.git
+    $ git clone https://github.com/netsphere-labs/omniauth-openid-connect.git
     $ rake build
     # rake install:local
 
@@ -72,7 +72,10 @@ And then execute:
 
     $ bundle
 
+    
+### Supported Ruby Versions
 
+OmniAuth::OpenIDConnect is tested under v2.5, v2.6
 
 
 
@@ -81,14 +84,27 @@ And then execute:
 See http://www.nslabs.jp/omniauth-openid-connect.rhtml
 
 
-Configuration details:
+### Options Overview
 
-  * If you want to pass `state` parameter by yourself. You can set Proc Object.  
-  e.g. `state: Proc.new{ SecureRandom.hex(32) }`
-  * `send_nonce` is optional. If don't want to pass "nonce" parameter to provider, You should specify
-  `false` to `send_nonce` option. (default true)
-  * Support for other client authentication methods. If don't specified
-  `:client_auth_method` option, automatically set `:basic`.
+| Field                        | Description                                                                                                                                                   | Required | Default                    | Example/Options                                     |
+|------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------|----------|----------------------------|-----------------------------------------------------|
+| name                         | Arbitrary string to identify connection and identify it from other openid_connect providers                                                                                                                        | no       | String: openid_connect     | :my_idp                                             |
+| issuer                       | Root url for the authorization server                                                                                                                         | yes      |                            | https://myprovider.com                              |
+| discovery                    | Should OpenID discovery be used. This is recommended if the IDP provides a discovery endpoint. See client config for how to manually enter discovered values. | no       | false                      | one of: true, false                                 |
+| client_auth_method           | Which authentication method to use to authenticate your app with the authorization server                                                                     | no       | Sym: basic                 | "basic", "jwks"                                     |
+| scope                        | Which OpenID scopes to include (:openid is always required)                                                                                                   | no       | Array<sym> [:openid]       | [:openid, :profile, :email]                         |
+| response_type                | Which OAuth2 response type to use with the authorization request. [Security issue] Do not use 'id_token'. 'id_token' is used for only Self-Issued OpenID Providers. Instead, use ['id_token', 'token'] (Implicit Flow).              | no       | String: code               | one of: 'code', ['id_token', 'token']                          |
+| state                        | A value to be used for the OAuth2 state parameter on the authorization request. Can be a proc that generates a string.                                        | no       | Random 16 character string | Proc.new { SecureRandom.hex(32) }                   |
+| response_mode                | The response mode per [spec](https://openid.net/specs/oauth-v2-form-post-response-mode-1_0.html)                                                              | no       | nil                        | one of: :query, :fragment, :form_post, :web_message |
+| display                      | An optional parameter to the authorization request to determine how the authorization and consent page                                                        | no       | nil                        | one of: :page, :popup, :touch, :wap                 |
+| prompt                       | An optional parameter to the authrization request to determine what pages the user will be shown                                                              | no       | nil                        | one of: :none, :login, :consent, :select_account    |
+| send_scope_to_token_endpoint | Should the scope parameter be sent to the authorization token endpoint?                                                                                       | no       | true                       | one of: true, false                                 |
+| post_logout_redirect_uri     | The logout redirect uri to use per the [session management draft](https://openid.net/specs/openid-connect-session-1_0.html)                                   | no       | empty                      | https://myapp.com/logout/callback                   |
+| uid_field                    | The field of the user info response to be used as a unique id                                                                                                 | no       | 'sub'                      | "sub", "preferred_username"                         |
+| client_options               | A hash of client options detailed in its own section                                                                                                          | yes      |                            |                                                     |
+
+
+### Additional Configuration Notes
 
   * `name` is arbitrary, I recommend using the name of your provider. The name
   configuration exists because you could be using multiple OpenID Connect
@@ -97,34 +113,65 @@ Configuration details:
   **NOTE**: if you use this gem with Devise you should use `:openid_connect` name,
   or Devise would route to 'users/auth/:provider' rather than 'users/auth/openid_connect'
 
-  * Although `response_type` is an available option, currently, only `:code`
-  is valid. There are plans to bring in implicit flow and hybrid flow at some
-  point, but it hasn't come up yet for me. Those flows aren't best practive for
-  server side web apps anyway and are designed more for native/mobile apps.
+  * `response_type` tells the authorization server which grant type the application wants to use,
+  currently, only `:code` (Authorization Code grant) and `[:id_token, :token]` (Implicit grant) are valid.
+  Do not use `:id_token`. This is valid only under Self-Issued OpenID Providers.
 
-  * If you want to pass `state` paramete by yourself. You can set Proc Object.  
+  * If you want to pass `state` paramete by yourself. You can set Proc Object.
   e.g. `state: Proc.new { SecureRandom.hex(32) }`
+
+
+### Client Config Options
+
+These are the configuration options for the client_options hash of the configuration.
+
+| Field                  | Description                                                     | Default    | Replaced by discovery? |
+|------------------------|-----------------------------------------------------------------|------------|------------------------|
+| identifier             | The OAuth2 client_id                                            |            |                        |
+| secret                 | The OAuth2 client secret                                        |            |                        |
+| redirect_uri           | The OAuth2 authorization callback url in your app               |            |                        |
+| scheme                 | The http scheme to use                                          | https      |                        |
+| host                   | The host of the authorization server                            | nil        |                        |
+| port                   | The port for the authorization server                           | 443        |                        |
+| authorization_endpoint | The authorize endpoint on the authorization server              | /authorize | yes                    |
+| token_endpoint         | The token endpoint on the authorization server                  | /token     | yes                    |
+| userinfo_endpoint      | The user info endpoint on the authorization server              | /userinfo  | yes                    |
+| jwks_uri               | The jwks_uri on the authorization server                        | /jwk       | yes                    |
+| end_session_endpoint   | The url to call to log the user out at the authorization server | nil        | yes                    |
+
+
+
+
+
+  
   * `nonce` is optional. If don't want to pass "nonce" parameter to provider, You should specify
   `false` to `send_nonce` option. (default true)
+
   * Support for other client authentication methods. If don't specified
   `:client_auth_method` option, automatically set `:basic`.
+  
   * Use "OpenID Connect Discovery", You should specify `true` to `discovery` option. (default false)
   * In "OpenID Connect Discovery", generally provider should have Webfinger endpoint.
-  If provider does not have Webfinger endpoint, You can specify "Issuer" to option.  
-  e.g. `issuer: "https://myprovider.com"`  
+  If provider does not have Webfinger endpoint, You can specify "Issuer" to option.
+  e.g. `issuer: "https://myprovider.com"`
   It means to get configuration from "https://myprovider.com/.well-known/openid-configuration".
   * The uid is by default using the `sub` value from the `user_info` response,
   which in some applications is not the expected value. To avoid such limitations, the uid label can be
   configured by providing the omniauth `uid_field` option to a different label (i.e. `preferred_username`)
   that appears in the `user_info` details.
   * The `issuer` property should exactly match the provider's issuer link.
+  * The `response_mode` option is optional and specifies how the result of the authorization request is formatted.
+  * Some OpenID Connect providers require the `scope` attribute in requests to the token endpoint, even if
+  this is not in the protocol specifications. In those cases, the `send_scope_to_token_endpoint`
+  property can be used to add the attribute to the token request. Initial value is `true`, which means that the
+  scope attribute is included by default.
 
 
 
 
 ## Contributing
 
-1. Fork it ( https://github.com/hhorikawa/omniauth-openid-connect )
+1. Fork it ( https://github.com/netsphere-labs/omniauth-openid-connect )
 2. Create your feature branch (`git checkout -b my-new-feature`)
 3. Cover your changes with tests and make sure they're green (`bundle install && bundle exec rake test`)
 4. Commit your changes (`git commit -am 'Add some feature'`)

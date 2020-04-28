@@ -22,7 +22,14 @@ module OmniAuth
       # - 他方, omniauth-oauth2 は, oauth2, jwt に依存. その書き換えも必要.
       include OmniAuth::Strategy
 
-      # 必須. こちらが route URL の provider 名になる
+      #extend Forwardable
+
+      RESPONSE_TYPE_EXCEPTIONS = {
+        'id_token token' => { exception_class: OmniAuth::OpenIDConnect::MissingIdTokenError, key: :missing_id_token }.freeze,
+        'code' => { exception_class: OmniAuth::OpenIDConnect::MissingCodeError, key: :missing_code }.freeze,
+      }.freeze
+
+      # [REQUIRED] こちらが route URL の provider 名になる
       option :name, 'openid_connect'
 
       # OpenIDConnect::Client.new() に渡されるオプション.
@@ -85,18 +92,17 @@ module OmniAuth
       # See https://openid.net/specs/oauth-v2-multiple-response-types-1_0.html
       # ただし, Webアプリでは 'code' 決め打ちでよい.
       # See http://oauth.jp/blog/2015/01/06/oauth2-multiple-response-type/
-      option :response_type, 'code'
+      option :response_type, 'code'     # one of 'code', ['id_token', 'token']
 
       # Authentication Request: [RECOMMENDED]
       # call()メソッドを持つこと. => new_state() から呼び出される.
       option :state
 
       # Authentication Request: [NOT RECOMMENDED]
-      # 次のいずれか;
-      #     'query', 'fragment', 'form_post'
       # 通常は指定不要.
       # See http://qiita.com/TakahikoKawasaki/items/185d34814eb9f7ac7ef3
-      # option :response_mode
+      # 'web_message' is for SPAs.
+      option :response_mode  # one of 'query', 'fragment', 'form_post', 'web_message'
 
       # true の場合, 認可リクエストに nonce を付ける
       option :send_nonce, true
@@ -148,16 +154,14 @@ module OmniAuth
       option :uid_field, 'sub'
 
       option :post_logout_redirect_uri
+      option :extra_authorize_params, {}
       
       # [Rack::OAuth2::AccessToken] アクセストークン
       attr_reader :access_token
 
       # @override
       def uid
-        user_info.public_send(options.uid_field.to_s)
-      rescue NoMethodError
-        log :warn, "User sub:#{user_info.sub} missing info field: #{options.uid_field}"
-        user_info.sub
+        user_info.raw_attributes[options.uid_field.to_sym] || user_info.sub
       end
 
       info do
@@ -268,9 +272,10 @@ module OmniAuth
         # 'error_reason' RFC 6749 にはない。Facebookは 'error' に加えて返す.
         error = request.params['error_reason'] || request.params['error']
         if error
+          error_description = request.params['error_description'] ||
+                              request.params['error_reason']
           raise CallbackError.new(request.params['error'],
-                                  request.params['error_description'] ||
-                                    request.params['error_reason'],
+                                  error_description,
                                   request.params['error_uri'])
         end
         if session['omniauth.state'] &&
@@ -281,14 +286,40 @@ module OmniAuth
           raise CallbackError.new(:csrf_detected, "Invalid 'state' parameter")
         end
 
-        # request.params["code"] のチェック, id_token の取得もこの中で.
-        @access_token = build_access_token
-        # self.access_token = access_token.refresh! if access_token.expired?
+        case configured_response_type
+        when 'code'
+          # request.params["code"] のチェック, id_token の取得もこの中で.
+          @access_token = build_access_token
+          # self.access_token = access_token.refresh! if access_token.expired?
+        when 'id_token token'
+          verify_id_token!(params['id_token'])     TODO TODO TODO
+        else
+          raise "Internal error: unknown response_type"
+        end
+
         super
       rescue OmniAuth::OpenIDConnect::MissingCodeError => e
         fail!(:missing_code, e)
       rescue CallbackError, ::Rack::OAuth2::Client::Error => e
         fail!(e.error, e)
+=======
+
+
+        options.issuer = issuer if options.issuer.nil? || options.issuer.empty?
+
+        discover!
+        client.redirect_uri = redirect_uri XXXXXXX Security issue!! XXXXX
+
+        return id_token_callback_phase if configured_response_type == 'id_token'
+
+        client.authorization_code = authorization_code
+        access_token
+        super
+      rescue CallbackError => e
+        fail!(e.error, e)
+      rescue ::Rack::OAuth2::Client::Error => e
+        fail!(e.response[:error], e)
+>>>>>>> 1d902199702357a285e347589c57de42078ebc7a
       rescue ::Timeout::Error, ::Errno::ETIMEDOUT => e
         fail!(:timeout, e)
       rescue ::SocketError => e
@@ -330,14 +361,19 @@ module OmniAuth
           scope: options.scope,
           prompt: options.prompt,
           # Rack::OAuth2::Client
-          response_type: options.response_type,
+          response_type: configured_response_type,
 
           state: new_state(),
-          #response_mode: options.response_mode,    [NOT RECOMMENDED]
+          response_mode: options.response_mode,
           nonce: (new_nonce if options.send_nonce),
           hd: options.hd,
         }
 
+        unless options.extra_authorize_params.empty?
+          opts.merge!(options.extra_authorize_params)
+        end
+
+        # Optional params.
         %i[display max_age acr_values ux].each do |key|
           opts[key] = options.send(key)
         end
@@ -349,11 +385,19 @@ module OmniAuth
           opts[key.to_sym] = request.params[key] if request.params[key]
         end
 
-        opts.reject { |_k, v| v.nil? }
+        if configured_response_type != 'code' &&
+           configured_response_type != 'id_token token'
+          raise ArgumentError(....)   TODO TODO
+        end
+
+        return opts.reject { |_k, v| v.nil? }
       end
 
 
+      # @return RSA public key
       def public_key(kid = nil)
+        # [Security issue] Do not call key_or_secret() here.
+        
         if options.discovery
           # ここで jwks_uri へのアクセスが発生.
           config().jwks # setのままでOK
@@ -468,27 +512,37 @@ module OmniAuth
           client_id: client_options.identifier,
           nonce: session.delete('omniauth.nonce')
         )
+=======
+
+        verify_id_token!(decode_id_token(@access_token.id_token)) if configured_response_type == 'code'
+
+        @access_token
+      end
+>>>>>>> 1d902199702357a285e347589c57de42078ebc7a
 
         actoken
       end
 
 
+      # [Security issue] On Authorization Code Flow, use key_or_secret, not
+      # public_key. On the other hand, you have to use public_key on Implicit
+      # Flow.
+      #def decode_id_token(id_token)
+           
       def client_options
         options.client_options
       end
 
 
       def new_state
-        session['omniauth.state'] =
-                if options.state.respond_to?(:call)
+        state = if options.state.respond_to?(:call)
                   if options.state.arity == 1
                     options.state.call(env)
                   else
                     options.state.call
                   end
-                else
-                  SecureRandom.hex(16)
                 end
+        session['omniauth.state'] = state || SecureRandom.hex(16)
       end
 
 
@@ -514,7 +568,7 @@ module OmniAuth
         
         case header['alg'].to_sym
         when :HS256, :HS384, :HS512
-          client_options.secret
+          client_options().secret
         when :RS256, :RS384, :RS512
           # public_key() のなかで, :client_jwk_signing_key と
           # :client_x509_signing_key を参照する
@@ -525,7 +579,10 @@ module OmniAuth
         end
       end
 
-     
+      # [Security issue] Do not use params['redirect_uri']
+      #def redirect_uri
+
+      
       def encoded_post_logout_redirect_uri
         return unless options.post_logout_redirect_uri
 
@@ -535,8 +592,8 @@ module OmniAuth
       end
 
       def end_session_endpoint_is_valid?
-        client_options.end_session_endpoint &&
-          client_options.end_session_endpoint =~ URI::DEFAULT_PARSER.make_regexp
+        client_options().end_session_endpoint &&
+          client_options().end_session_endpoint =~ URI::DEFAULT_PARSER.make_regexp
       end
 
       def logout_path_pattern
@@ -544,18 +601,66 @@ module OmniAuth
       end
 
 
+      def implicit_flow_callback_phase
+        user_data = decode_id_token(params['id_token']).raw_attributes
+        env['omniauth.auth'] = AuthHash.new(
+          provider: name,
+          uid: user_data['sub'],
+          info: { name: user_data['name'], email: user_data['email'] },
+          extra: { raw_info: user_data }
+        )
+        call_app!
+      end
+
+      
+      def valid_response_type?
+        configured_response_type.split(' ').each do |key|
+          case key
+          when 'code'; code
+          when 'id_token'; id_token
+          when 'token'; access_token  TODO TODO TODO
+          else
+            raise "Internal error: unknown response_type"
+          end
+        end
+        return true if params.key?(.....)
+
+        error_attrs = RESPONSE_TYPE_EXCEPTIONS[configured_response_type]
+        fail!(error_attrs[:key], error_attrs[:exception_class].new(params['error']))
+
+        false
+      end
+
+      
+      def configured_response_type
+        @configured_response_type ||= if options.response_type.is_a?(Array)
+                                        options.response_type.sort.join(' ')
+                                      else
+                                        options.response_type.to_s
+                                      end
+      end
+
+      
+      def verify_id_token!(id_token)
+        decode_id_token(id_token).verify!(issuer: options.issuer,
+                                          client_id: client_options().identifier,
+                                          nonce: stored_nonce)
+      end
+>>>>>>> 1d902199702357a285e347589c57de42078ebc7a
+
       class CallbackError < StandardError
         attr_reader :error
-        attr_accessor :error_reason, :error_uri
+        attr_reader :error_reason, :error_uri
 
         def initialize(error, error_reason = nil, error_uri = nil)
           raise TypeError if !error
           
           @error = error
-          self.error_reason = error_reason
-          self.error_uri = error_uri
+          @error_reason = error_reason
+          @error_uri = error_uri
         end
 
+        # @override
         def message
           [error, error_reason, error_uri].compact.join(' | ')
         end

@@ -1,7 +1,7 @@
 # -*- coding:utf-8 -*-
 # frozen_string_literal: true
 
-lib = File.expand_path('lib', __dir__)  # __FILE__ より better
+lib = File.expand_path('lib', __dir__)  # Better then __FILE__
 $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
 require 'omniauth/openid_connect/version'
 
@@ -13,12 +13,12 @@ Gem::Specification.new do |spec|
   spec.email         = ['hisashi.horikawa@gmail.com', 'paul.scarrone@gmail.com',
                         'jjbohn@gmail.com', 'm0n9oose@gmail.com']
   spec.summary       = %q{OpenID Connect Strategy MK2 for OmniAuth}
-  spec.description   = %q{OpenID Connect Strategy MK2 for OmniAuth which is fully compliant with devise and rails and currently maintained. Derived from jjbohn's work which is not actively maintained}
-  spec.homepage      = 'https://github.com/hhorikawa/omniauth-openid-connect'
+  spec.description   = %q{OpenID Connect Strategy MK2 for OmniAuth which is fully compliant with Devise and Rails and currently maintained. Derived from jjbohn's work which is not actively maintained}
+  spec.homepage      = 'https://github.com/netsphere-labs/omniauth-openid-connect'
   spec.license       = 'MIT'
-  # v2.2 は 2018-03-31 EOL.
+
   # v2.3 は 2019-03-31 EOL.
-  spec.required_ruby_version = '>= 2.4'
+  spec.required_ruby_version = '>= 2.5'
   
   spec.files         = `git ls-files -z`.split("\x0")
   spec.executables   = spec.files.grep(%r{^bin/}) { |f| File.basename(f) }
@@ -88,6 +88,4 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency 'rubocop', '<= 0.58.2'
   # v0.15.0 が出てる
   spec.add_development_dependency 'simplecov', '~> 0.16.1'
-  # pry は廃れた.
-  #spec.add_development_dependency 'pry'
 end
