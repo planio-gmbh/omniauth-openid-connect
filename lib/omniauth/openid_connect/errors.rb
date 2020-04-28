@@ -7,5 +7,7 @@ module OmniAuth
 
     # Authorization Response に 'code' [REQUIRED] がない.
     class MissingCodeError < Error; end
+
+    class MissingIdTokenError < Error; end
   end
 end
