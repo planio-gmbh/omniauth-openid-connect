@@ -7,7 +7,7 @@ require 'net/http'
 require 'omniauth'
 require 'openid_connect'
 #require 'jwt'
-#require 'forwardable'
+require 'forwardable'
 
 
 module OmniAuth
@@ -22,13 +22,15 @@ module OmniAuth
       # - 他方, omniauth-oauth2 は, oauth2, jwt に依存. その書き換えも必要.
       include OmniAuth::Strategy
 
-      #extend Forwardable
+      extend Forwardable
 
       RESPONSE_TYPE_EXCEPTIONS = {
         'id_token token' => { exception_class: OmniAuth::OpenIDConnect::MissingIdTokenError, key: :missing_id_token }.freeze,
         'code' => { exception_class: OmniAuth::OpenIDConnect::MissingCodeError, key: :missing_code }.freeze,
       }.freeze
 
+      def_delegator :request, :params
+      
       # [REQUIRED] こちらが route URL の provider 名になる
       option :name, 'openid_connect'
 
@@ -39,6 +41,7 @@ module OmniAuth
                 identifier: nil,
 
                 # Authentication Request: [REQUIRED] client_secret
+                # On Implicit Flow, MUST NOT set this option.
                 # Rack::OAuth2::Client
                 secret: nil,
 
@@ -105,6 +108,8 @@ module OmniAuth
       option :response_mode  # one of 'query', 'fragment', 'form_post', 'web_message'
 
       # true の場合, 認可リクエストに nonce を付ける
+      # On Implicit Flow, the `nonce` is required. `send_nonce` option is
+      # ignored.
       option :send_nonce, true
 
       # Authentication Request: [OPTIONAL]
@@ -239,7 +244,7 @@ module OmniAuth
         end
         unless (uri = URI.parse(@issuer)) &&
                ['http', 'https'].include?(uri.scheme)
-          raise ArgumentError, "invalid issuer URI scheme"
+          raise ArgumentError, "Invalid issuer URI scheme"
         end
 
         # OpenID Connect Discovery 1.0 の OpenID Provider Issuer Discovery
@@ -253,6 +258,16 @@ module OmniAuth
           SWD.url_builder = URI::HTTP
         end
         discover! if options.discovery
+
+        if configured_response_type != 'code' &&
+           configured_response_type != 'id_token token'
+          raise ArgumentError, "Invalid response_type"
+        end
+        if configured_response_type == 'id_token token'
+          if client_options.secret
+            raise ArgumentError, "MUST NOT set client_secret on Implicit Flow"
+          end
+        end
       end
 
 
@@ -268,19 +283,20 @@ module OmniAuth
       # @override
       # See https://github.com/intridea/omniauth-oauth2/
       def callback_phase
-        # 'error' 必須
-        # 'error_reason' RFC 6749 にはない。Facebookは 'error' に加えて返す.
-        error = request.params['error_reason'] || request.params['error']
-        if error
-          error_description = request.params['error_description'] ||
-                              request.params['error_reason']
-          raise CallbackError.new(request.params['error'],
-                                  error_description,
-                                  request.params['error_uri'])
+        # 'error' [REQUIRED]  Ref. RFC 6749
+        #     invalid_request
+        #     unauthorized_client
+        #     etc.
+        if params['error']
+          error_description = params['error_description'] ||
+                              params['error_reason']
+          raise CallbackError.new(params['error'],
+                                  error_description,   # optional
+                                  params['error_uri']) # optional
         end
         if session['omniauth.state'] &&
-          (request.params['state'].to_s.empty? ||
-            request.params['state'] != session.delete('omniauth.state'))
+           (params['state'].to_s.empty? ||
+            params['state'] != session.delete('omniauth.state'))
           # RFC 6749 4.1.2: クライアントからの認可リクエストに stateパラメータ
           # が含まれていた場合は, そのまま返ってくる. [REQUIRED]
           raise CallbackError.new(:csrf_detected, "Invalid 'state' parameter")
@@ -288,13 +304,10 @@ module OmniAuth
 
         case configured_response_type
         when 'code'
-          # request.params["code"] のチェック, id_token の取得もこの中で.
-          @access_token = build_access_token
-          # self.access_token = access_token.refresh! if access_token.expired?
+          # params["code"] のチェック, id_token の取得もこの中で.
+          authorization_code_flow_callback_phase()
         when 'id_token token'
-          verify_id_token!(params['id_token'])     TODO TODO TODO
-        else
-          raise "Internal error: unknown response_type"
+          implicit_flow_callback_phase()
         end
 
         super
@@ -365,7 +378,7 @@ module OmniAuth
 
           state: new_state(),
           response_mode: options.response_mode,
-          nonce: (new_nonce if options.send_nonce),
+          nonce: (new_nonce if options.send_nonce || configured_response_type == 'id_token token'),
           hd: options.hd,
         }
 
@@ -382,12 +395,7 @@ module OmniAuth
         ['ui_locales', 'id_token_hint', 'login_hint', 'claims_locales', # OpenID Connect Core 1.0
          # extensions
          'email', 'realm', 'cid', 'chem'].each do |key|
-          opts[key.to_sym] = request.params[key] if request.params[key]
-        end
-
-        if configured_response_type != 'code' &&
-           configured_response_type != 'id_token token'
-          raise ArgumentError(....)   TODO TODO
+          opts[key.to_sym] = params[key] if params[key]
         end
 
         return opts.reject { |_k, v| v.nil? }
@@ -415,9 +423,11 @@ module OmniAuth
         end
       end
 
+
     private ##############################################
 
-      # @return [String] options.issuer または client_options からつくった issuer
+      # @return [String] options.issuer または client_options からつくった
+      #                  issuer.
       # 設定は setup_phase() 内で行う.
       attr_reader :issuer
 
@@ -463,18 +473,15 @@ module OmniAuth
       # @return [Rack::OAuth2::AccessToken] アクセストークン
       #         'oauth2'パッケージの OAuth2::AccessToken クラスとは別物.
       # @raise [OmniAuth::OpenIDConnect::MissingCodeError] code がない.
-      def build_access_token
-        unless request.params["code"]
-          raise OmniAuth::OpenIDConnect::MissingCodeError.new(request.params["error"])
+      def authorization_code_flow_callback_phase
+        unless params["code"]
+          raise OmniAuth::OpenIDConnect::MissingCodeError.new(params["error"])
         end
 
         # これはメソッド呼び出し. See Rack::OAuth2::Client
-        client.authorization_code = request.params.delete('code')
+        client.authorization_code = params.delete('code')
 
         # token_endpoint に対して http request を行う.
-        # TODO: Implicit Flow では, id_token と同時にアクセストークンを得るた
-        #       め, このコードを skip する必要がある.
-        
         # 仕様では grant_type, code, redirect_uri パラメータ
         opts = {
           scope: (options.scope if options.send_scope_to_token_endpoint),
@@ -488,14 +495,6 @@ module OmniAuth
         end
         actoken = client.access_token! opts
 
-        # Implicit Flow
-        #   id_token が改竄されているリスクがある。
-        #   そのため, IdP の公開鍵によって, 署名を検証しなければならない.
-        #   JWT ヘッダの鍵アルゴリズムが 'none' 場合は, 失敗にしなければならない.
-        # TODO: 下の header で鍵を選ぶのではなく, 公開鍵決め打ちにしなければな
-        #       らない.
-        # /Implicit Flow
-        
         # 鍵を選ぶ。"{ヘッダ部}.{ペイロード部}.{シグネチャ部}" と、ピリオドで
         # 区切られている。ヘッダ部にアルゴリズムが書かれている.
         header = (JSON::JWS.decode_compact_serialized actoken.id_token, :skip_verification).header
@@ -516,7 +515,9 @@ module OmniAuth
 
         verify_id_token!(decode_id_token(@access_token.id_token)) if configured_response_type == 'code'
 
-        @access_token
+@access_token
+          # self.access_token = access_token.refresh! if access_token.expired?
+
       end
 >>>>>>> 1d902199702357a285e347589c57de42078ebc7a
 
@@ -601,7 +602,16 @@ module OmniAuth
       end
 
 
+      # Implicit Flow:
+      #   id_token と同時にアクセストークンを得る. id_token が改竄されている
+      #   risk がある。
+      #   そのため, IdP の公開鍵によって, 署名を検証しなければならない.
+      #   JWT ヘッダの鍵アルゴリズムが 'none' 場合は, 失敗にしなければならない.
+      # TODO: 下の header で鍵を選ぶのではなく, 公開鍵決め打ちにしなければな
+      #       らない.
       def implicit_flow_callback_phase
+        verify_id_token!(params['id_token'])     TODO TODO TODO
+                  
         user_data = decode_id_token(params['id_token']).raw_attributes
         env['omniauth.auth'] = AuthHash.new(
           provider: name,
@@ -646,12 +656,15 @@ module OmniAuth
                                           client_id: client_options().identifier,
                                           nonce: stored_nonce)
       end
->>>>>>> 1d902199702357a285e347589c57de42078ebc7a
+
 
       class CallbackError < StandardError
         attr_reader :error
         attr_reader :error_reason, :error_uri
 
+        # @param error [REQUIRED] a single ASCII error code. Ref. RFC 6749
+        # @param error_reason [OPTIONAL] Human-readable text.
+        # @param error_uri [OPTIONAL]
         def initialize(error, error_reason = nil, error_uri = nil)
           raise TypeError if !error
           

@@ -114,11 +114,16 @@ See http://www.nslabs.jp/omniauth-openid-connect.rhtml
   or Devise would route to 'users/auth/:provider' rather than 'users/auth/openid_connect'
 
   * `response_type` tells the authorization server which grant type the application wants to use,
-  currently, only `:code` (Authorization Code grant) and `[:id_token, :token]` (Implicit grant) are valid.
-  Do not use `:id_token`. This is valid only under Self-Issued OpenID Providers.
+  currently, only `'code'` (Authorization Code grant) and `['id_token', 'token']` (Implicit grant) are valid.
+  Do not use `id_token`. This is valid only under Self-Issued OpenID Providers.
 
   * If you want to pass `state` paramete by yourself. You can set Proc Object.
   e.g. `state: Proc.new { SecureRandom.hex(32) }`
+
+  * ON Authorization Code Flow, `nonce` is optional. If you don't want to pass the "nonce" parameter to provider, you should specify
+  `false` to `send_nonce` option (default true). On Implicit Flow, the `nonce` is required. `send_nonce` option is ignored.
+
+
 
 
 ### Client Config Options
@@ -142,10 +147,6 @@ These are the configuration options for the client_options hash of the configura
 
 
 
-
-  
-  * `nonce` is optional. If don't want to pass "nonce" parameter to provider, You should specify
-  `false` to `send_nonce` option. (default true)
 
   * Support for other client authentication methods. If don't specified
   `:client_auth_method` option, automatically set `:basic`.
