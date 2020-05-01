@@ -107,11 +107,6 @@ module OmniAuth
       # 'web_message' is for SPAs.
       option :response_mode  # one of 'query', 'fragment', 'form_post', 'web_message'
 
-      # true の場合, 認可リクエストに nonce を付ける
-      # On Implicit Flow, the `nonce` is required. `send_nonce` option is
-      # ignored.
-      option :send_nonce, true
-
       # Authentication Request: [OPTIONAL]
       # value is one of [:page, :popup, :touch, :wap]
       option :display, nil
@@ -127,13 +122,18 @@ module OmniAuth
       # Authentication Request: [OPTIONAL]
       option :max_age
 
-      # Authentication Request: [OPTIONAL]
-      option :acr_values
-
-      # not option, but request.params 
+      # not option, but by request.params 
       #option :ui_locales
       #option :id_token_hint
       #option :login_hint
+
+      # Authentication Request: [OPTIONAL]
+      option :acr_values
+
+      # true の場合, 認可リクエストに nonce を付ける
+      # On Implicit Flow, the `nonce` is required. `send_nonce` option is
+      # ignored.
+      option :send_nonce, true
 
       # Must verify the id_token. So remove this option.
       #option :verify_id_token, nil
@@ -155,12 +155,14 @@ module OmniAuth
       # れば失敗する
       option :send_client_secret_to_token_endpoint, false
 
+      option :post_logout_redirect_uri
+      option :extra_authorize_params, {}
+
       # Any field from user_info to be processed as UID
       option :uid_field, 'sub'
 
-      option :post_logout_redirect_uri
-      option :extra_authorize_params, {}
-      
+      ##############################
+
       # [Rack::OAuth2::AccessToken] アクセストークン
       attr_reader :access_token
 
@@ -196,7 +198,7 @@ module OmniAuth
             token: access_token.access_token,
             refresh_token: access_token.refresh_token,
             expires_in: access_token.expires_in,
-            scope: access_token.scope
+            scope: access_token.scope,
           }
         end
       end
@@ -273,10 +275,11 @@ module OmniAuth
 
       # @override
       def request_phase
+        #options.issuer = issuer if options.issuer.to_s.empty?
         #discover! ここで呼び出してはいけない. discovery: false対応.
         
         # client() 内で client_options から OpenIDConnect::Client を構築.
-        redirect client.authorization_uri(authorize_params)
+        redirect client().authorization_uri(authorize_params)
       end
 
 
@@ -288,8 +291,7 @@ module OmniAuth
         #     unauthorized_client
         #     etc.
         if params['error']
-          error_description = params['error_description'] ||
-                              params['error_reason']
+          error_description = params['error_description'] || params['error_reason']
           raise CallbackError.new(params['error'],
                                   error_description,   # optional
                                   params['error_uri']) # optional
@@ -305,34 +307,20 @@ module OmniAuth
         case configured_response_type
         when 'code'
           # params["code"] のチェック, id_token の取得もこの中で.
+          # @access_token の設定もこの中で.
           authorization_code_flow_callback_phase()
         when 'id_token token'
           implicit_flow_callback_phase()
         end
 
         super
-      rescue OmniAuth::OpenIDConnect::MissingCodeError => e
-        fail!(:missing_code, e)
-      rescue CallbackError, ::Rack::OAuth2::Client::Error => e
-        fail!(e.error, e)
-=======
-
-
-        options.issuer = issuer if options.issuer.nil? || options.issuer.empty?
-
-        discover!
-        client.redirect_uri = redirect_uri XXXXXXX Security issue!! XXXXX
-
-        return id_token_callback_phase if configured_response_type == 'id_token'
-
-        client.authorization_code = authorization_code
-        access_token
-        super
       rescue CallbackError => e
         fail!(e.error, e)
+      rescue OmniAuth::OpenIDConnect::MissingCodeError,
+             OmniAuth::OpenIDConnect::MissingIdTokenError => e
+        fail!(:missing_code, e)
       rescue ::Rack::OAuth2::Client::Error => e
         fail!(e.response[:error], e)
->>>>>>> 1d902199702357a285e347589c57de42078ebc7a
       rescue ::Timeout::Error, ::Errno::ETIMEDOUT => e
         fail!(:timeout, e)
       rescue ::SocketError => e
@@ -352,7 +340,7 @@ module OmniAuth
         call_app!
       end
 
-      #def authorization_code  ●これは不味い. params.delete() しないと.
+      #def authorization_code  ●これは不味い. params.delete() しないといかん.
       #  params['code']
       #end
 
@@ -373,9 +361,9 @@ module OmniAuth
           # OpenIDConnect::Client
           scope: options.scope,
           prompt: options.prompt,
-          # Rack::OAuth2::Client
+          # Rack::OAuth2::Client#authorization_uri()
           response_type: configured_response_type,
-
+          # Others
           state: new_state(),
           response_mode: options.response_mode,
           nonce: (new_nonce if options.send_nonce || configured_response_type == 'id_token token'),
@@ -432,7 +420,7 @@ module OmniAuth
       attr_reader :issuer
 
       def discover!
-        raise "bug" if !options.discovery
+        raise "internal bug" if !options.discovery
         
         # config() 内で, issuer を引数にして, 実際に discover! している.
         client_options.authorization_endpoint = config().authorization_endpoint
@@ -485,7 +473,7 @@ module OmniAuth
         # 仕様では grant_type, code, redirect_uri パラメータ
         opts = {
           scope: (options.scope if options.send_scope_to_token_endpoint),
-          client_auth_method: options.client_auth_method,
+          client_auth_method: options.client_auth_method
         }
         if options.send_client_secret_to_token_endpoint
           opts.merge!(
@@ -493,7 +481,7 @@ module OmniAuth
             client_secret: client_options.secret
           )
         end
-        actoken = client.access_token! opts
+        @access_token = client.access_token! opts
 
         # 鍵を選ぶ。"{ヘッダ部}.{ペイロード部}.{シグネチャ部}" と、ピリオドで
         # 区切られている。ヘッダ部にアルゴリズムが書かれている.
@@ -504,24 +492,9 @@ module OmniAuth
         # このなかで署名の検証も行う. => JSON::JWS::VerificationFailed
         id_token = ::OpenIDConnect::ResponseObject::IdToken.decode(
                        actoken.id_token, key)
-        #raise session.inspect # DEBUG DEBUG DEBUG
-        # こちらは内容の検証.
-        id_token.verify!(
-          issuer: issuer,
-          client_id: client_options.identifier,
-          nonce: session.delete('omniauth.nonce')
-        )
-=======
+        verify_id_token!(id_token)
 
-        verify_id_token!(decode_id_token(@access_token.id_token)) if configured_response_type == 'code'
-
-@access_token
-          # self.access_token = access_token.refresh! if access_token.expired?
-
-      end
->>>>>>> 1d902199702357a285e347589c57de42078ebc7a
-
-        actoken
+        @access_token
       end
 
 
@@ -569,7 +542,7 @@ module OmniAuth
         
         case header['alg'].to_sym
         when :HS256, :HS384, :HS512
-          client_options().secret
+          client_options.secret
         when :RS256, :RS384, :RS512
           # public_key() のなかで, :client_jwk_signing_key と
           # :client_x509_signing_key を参照する
@@ -593,8 +566,8 @@ module OmniAuth
       end
 
       def end_session_endpoint_is_valid?
-        client_options().end_session_endpoint &&
-          client_options().end_session_endpoint =~ URI::DEFAULT_PARSER.make_regexp
+        client_options.end_session_endpoint &&
+          client_options.end_session_endpoint =~ URI::DEFAULT_PARSER.make_regexp
       end
 
       def logout_path_pattern
@@ -650,11 +623,11 @@ module OmniAuth
                                       end
       end
 
-      
-      def verify_id_token!(id_token)
-        decode_id_token(id_token).verify!(issuer: options.issuer,
-                                          client_id: client_options().identifier,
-                                          nonce: stored_nonce)
+
+      def verify_id_token!(decoded_id_token)
+        decoded_id_token.verify!(issuer: issuer,
+                                 client_id: client_options.identifier,
+                                 nonce: session.delete('omniauth.nonce') )
       end
 
 
