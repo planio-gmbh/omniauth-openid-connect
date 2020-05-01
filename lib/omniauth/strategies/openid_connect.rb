@@ -130,7 +130,7 @@ module OmniAuth
       # Authentication Request: [OPTIONAL]
       option :acr_values
 
-      # true の場合, 認可リクエストに nonce を付ける
+      # Authentication Request: true の場合, nonce を付ける
       # On Implicit Flow, the `nonce` is required. `send_nonce` option is
       # ignored.
       option :send_nonce, true
@@ -139,6 +139,8 @@ module OmniAuth
       #option :verify_id_token, nil
 
       option :ux
+
+      option :extra_authorize_params, {}
 
       ##############################
       # token_endpoint
@@ -156,7 +158,6 @@ module OmniAuth
       option :send_client_secret_to_token_endpoint, false
 
       option :post_logout_redirect_uri
-      option :extra_authorize_params, {}
 
       # Any field from user_info to be processed as UID
       option :uid_field, 'sub'
