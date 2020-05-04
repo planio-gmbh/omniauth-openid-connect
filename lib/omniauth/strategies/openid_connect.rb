@@ -24,11 +24,6 @@ module OmniAuth
 
       extend Forwardable
 
-      RESPONSE_TYPE_EXCEPTIONS = {
-        'id_token token' => { exception_class: OmniAuth::OpenIDConnect::MissingIdTokenError, key: :missing_id_token }.freeze,
-        'code' => { exception_class: OmniAuth::OpenIDConnect::MissingCodeError, key: :missing_code }.freeze,
-      }.freeze
-
       def_delegator :request, :params
       
       # [REQUIRED] こちらが route URL の provider 名になる
@@ -315,11 +310,8 @@ module OmniAuth
         end
 
         super
-      rescue CallbackError => e
+      rescue CallbackError, OmniAuth::OpenIDConnect::Error => e
         fail!(e.error, e)
-      rescue OmniAuth::OpenIDConnect::MissingCodeError,
-             OmniAuth::OpenIDConnect::MissingIdTokenError => e
-        fail!(:missing_code, e)
       rescue ::Rack::OAuth2::Client::Error => e
         fail!(e.response[:error], e)
       rescue ::Timeout::Error, ::Errno::ETIMEDOUT => e
@@ -464,7 +456,7 @@ module OmniAuth
       # @raise [OmniAuth::OpenIDConnect::MissingCodeError] code がない.
       def authorization_code_flow_callback_phase
         unless params["code"]
-          raise OmniAuth::OpenIDConnect::MissingCodeError.new(params["error"])
+          raise OmniAuth::OpenIDConnect::MissingCodeError.new("Missing 'code' param")
         end
 
         # これはメソッド呼び出し. See Rack::OAuth2::Client
@@ -584,6 +576,10 @@ module OmniAuth
       # TODO: 下の header で鍵を選ぶのではなく, 公開鍵決め打ちにしなければな
       #       らない.
       def implicit_flow_callback_phase
+        if !params["access_token"] || !params["id_token"]
+          raise OmniAuth::OpenIDConnect::MissingIdTokenError.new("Missing 'access_token' or 'id_token' param")
+        end
+
         verify_id_token!(params['id_token'])     TODO TODO TODO
                   
         user_data = decode_id_token(params['id_token']).raw_attributes
@@ -596,26 +592,7 @@ module OmniAuth
         call_app!
       end
 
-      
-      def valid_response_type?
-        configured_response_type.split(' ').each do |key|
-          case key
-          when 'code'; code
-          when 'id_token'; id_token
-          when 'token'; access_token  TODO TODO TODO
-          else
-            raise "Internal error: unknown response_type"
-          end
-        end
-        return true if params.key?(.....)
 
-        error_attrs = RESPONSE_TYPE_EXCEPTIONS[configured_response_type]
-        fail!(error_attrs[:key], error_attrs[:exception_class].new(params['error']))
-
-        false
-      end
-
-      
       def configured_response_type
         @configured_response_type ||= if options.response_type.is_a?(Array)
                                         options.response_type.sort.join(' ')
@@ -645,11 +622,8 @@ module OmniAuth
           @error = error
           @error_reason = error_reason
           @error_uri = error_uri
-        end
 
-        # @override
-        def message
-          [error, error_reason, error_uri].compact.join(' | ')
+          super [error, error_reason, error_uri].compact.join(' | ')
         end
       end # class CallbackError
 
