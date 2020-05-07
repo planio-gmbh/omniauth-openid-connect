@@ -1,13 +1,14 @@
 
-# OmniAuth::OpenIDConnect
+# OmniAuth::OpenIDConnect renewed
 
-Authentication strategy using OpenID Connect for OmniAuth. This package replaces 'omniauth-google-oauth2', 'omniauth-yahoojp', and 'omniauth-azure-oauth2'.
+Authentication strategy using OpenID Connect for OmniAuth. This package replaces 'omniauth-google-oauth2', 'omniauth-yahoojp', 'omniauth_openid_connect' and 'omniauth-azure-oauth2'.
 
 [![Code Climate](https://codeclimate.com/github/hhorikawa/omniauth-openid-connect/badges/gpa.svg)](https://codeclimate.com/github/hhorikawa/omniauth-openid-connect)
 [![Test Coverage](https://codeclimate.com/github/hhorikawa/omniauth-openid-connect/badges/coverage.svg)](https://codeclimate.com/github/hhorikawa/omniauth-openid-connect/coverage)
 
 The original is [jjbohn/omniauth-openid-connect](https://github.com/jjbohn/omniauth-openid-connect). This repository is a integration of modifications scattered in various places. [Shopify/omniauth-identity](https://github.com/Shopify/omniauth-identity), [patatoid/omniauth-openid-reconnect](https://github.com/patatoid/omniauth-openid-reconnect) and [m0n9oose/omniauth_openid_connect](https://github.com/m0n9oose/omniauth_openid_connect).
 
+**Important** OmniAuth v1.9.1 and earlier is vulnerable to Cross-Site Request Forgery. Application developers need to avoid this vulnerability. See [CVE-2015-9284](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2015-9284), [Resolving CVE 2015 9284 · omniauth/omniauth Wiki](https://github.com/omniauth/omniauth/wiki/Resolving-CVE-2015-9284).
 
 
 
@@ -81,7 +82,7 @@ OmniAuth::OpenIDConnect is tested under v2.5, v2.6
 
 ## Usage
 
-See http://www.nslabs.jp/omniauth-openid-connect.rhtml
+See https://www.nslabs.jp/omniauth-openid-connect.rhtml
 
 
 ### Options Overview
