@@ -73,6 +73,7 @@ module OmniAuth
       option :discovery, false
 
       # Required if you don't use 'discovery'.
+      # IdP's public keys. NOT client's.
       option :client_jwk_signing_key
       option :client_x509_signing_key
 
@@ -273,6 +274,9 @@ module OmniAuth
       def request_phase
         #options.issuer = issuer if options.issuer.to_s.empty?
         #discover! ここで呼び出してはいけない. discovery: false対応.
+
+        # For CVE-2015-9284
+        raise SecurityError, "'POST' only" if request.request_method != "POST"
         
         # client() 内で client_options から OpenIDConnect::Client を構築.
         redirect client().authorization_uri(authorize_params)
@@ -333,7 +337,7 @@ module OmniAuth
         call_app!
       end
 
-      #def authorization_code  ●これは不味い. params.delete() しないといかん.
+      #def authorization_code  ... params.delete() しないといかん. Remove.
       #  params['code']
       #end
 
@@ -383,7 +387,7 @@ module OmniAuth
       end
 
 
-      # @return RSA public key
+      # @return [JSON::JWK::Set] IdP's RSA public keys. NOT client's.
       def public_key(kid = nil)
         # [Security issue] Do not call key_or_secret() here.
         
@@ -456,7 +460,7 @@ module OmniAuth
       # @raise [OmniAuth::OpenIDConnect::MissingCodeError] code がない.
       def authorization_code_flow_callback_phase
         unless params["code"]
-          raise OmniAuth::OpenIDConnect::MissingCodeError.new("Missing 'code' param")
+          raise OmniAuth::OpenIDConnect::MissingCodeError, "Missing 'code' param"
         end
 
         # これはメソッド呼び出し. See Rack::OAuth2::Client
@@ -475,16 +479,17 @@ module OmniAuth
           )
         end
         @access_token = client.access_token! opts
+        raise TypeError, "internal error" if !@access_token.is_a?(Rack::OAuth2::AccessToken)
 
         # 鍵を選ぶ。"{ヘッダ部}.{ペイロード部}.{シグネチャ部}" と、ピリオドで
         # 区切られている。ヘッダ部にアルゴリズムが書かれている.
-        header = (JSON::JWS.decode_compact_serialized actoken.id_token, :skip_verification).header
+        header = (JSON::JWS.decode_compact_serialized @access_token.id_token, :skip_verification).header
         #header = ::JWT.decoded_segments(actoken.id_token, false)[0]
         key = key_or_secret header
 
         # このなかで署名の検証も行う. => JSON::JWS::VerificationFailed
         id_token = ::OpenIDConnect::ResponseObject::IdToken.decode(
-                       actoken.id_token, key)
+                                              @access_token.id_token, key)
         verify_id_token!(id_token)
 
         @access_token
@@ -569,19 +574,28 @@ module OmniAuth
 
 
       # Implicit Flow:
-      #   id_token と同時にアクセストークンを得る. id_token が改竄されている
-      #   risk がある。
-      #   そのため, IdP の公開鍵によって, 署名を検証しなければならない.
-      #   JWT ヘッダの鍵アルゴリズムが 'none' 場合は, 失敗にしなければならない.
-      # TODO: 下の header で鍵を選ぶのではなく, 公開鍵決め打ちにしなければな
-      #       らない.
+      # id_token と同時に access token を得る. id_token または access token の
+      # いずれかが改竄されている risk がある。(Token Hijacking)
+      # そのため,
+      # (1) IdP の公開鍵によって, id_token の署名を検証しなければならない.
+      #     header で鍵を選ぶのではなく, 公開鍵決め打ちにしなければならない.
+      # (2) access token を id_token によって検証しなければならない.
       def implicit_flow_callback_phase
-        if !params["access_token"] || !params["id_token"]
-          raise OmniAuth::OpenIDConnect::MissingIdTokenError.new("Missing 'access_token' or 'id_token' param")
+        if !params['access_token'] || !params['id_token']
+          raise OmniAuth::OpenIDConnect::MissingIdTokenError, "Missing 'access_token' or 'id_token' param"
         end
 
-        verify_id_token!(params['id_token'])     TODO TODO TODO
-                  
+        # このなかで署名の検証も行う. => JSON::JWS::VerificationFailed
+        id_token = ::OpenIDConnect::ResponseObject::IdToken.decode(
+                       params['id_token'],
+                       public_key())
+        # 内容の検証
+        verify_id_token!(id_token)
+
+        # さらに, access token を検証しなければならない.
+        OmniAuth::OpenIDConnect.verify_access_token(
+                         params['access_token'], id_token, params['id_token'])
+
         user_data = decode_id_token(params['id_token']).raw_attributes
         env['omniauth.auth'] = AuthHash.new(
           provider: name,
@@ -589,7 +603,6 @@ module OmniAuth
           info: { name: user_data['name'], email: user_data['email'] },
           extra: { raw_info: user_data }
         )
-        call_app!
       end
 
 
@@ -603,6 +616,7 @@ module OmniAuth
 
 
       def verify_id_token!(decoded_id_token)
+        raise TypeError if !decoded_id_token.is_a?(::OpenIDConnect::ResponseObject::IdToken)
         decoded_id_token.verify!(issuer: issuer,
                                  client_id: client_options.identifier,
                                  nonce: session.delete('omniauth.nonce') )

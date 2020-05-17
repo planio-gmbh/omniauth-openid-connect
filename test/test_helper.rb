@@ -7,7 +7,7 @@ require 'simplecov'
 require 'minitest/autorun'
 require 'mocha/minitest'
 require 'faker'
-require 'active_support'
+#require 'active_support'
 
 #SimpleCov.command_name 'test'
 SimpleCov.start do # 最初に実行すること.

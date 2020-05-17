@@ -53,7 +53,8 @@ Gem::Specification.new do |spec|
 =end
   
   # symbolize_keys() 
-  spec.add_dependency 'activesupport', '>= 4.2' 
+  #spec.add_dependency 'activesupport', '>= 4.2'
+  
   spec.add_dependency 'omniauth', '~> 1.9'   # omniauth-oauth2 に合わせる
   spec.add_dependency 'openid_connect', '~> 1.1'
   spec.add_dependency 'json-jwt', '>= 1.5.0'
@@ -75,7 +76,9 @@ Gem::Specification.new do |spec|
   # coverall v0.8.22 depends on simplecov ~> 0.16.1
   #spec.add_development_dependency 'coveralls'
 
-  spec.add_development_dependency 'faker'
+  # simplecov, rubocop, i18n のバージョンを限定
+  spec.add_development_dependency 'faker', '~> 2.1.2'
+
   spec.add_development_dependency 'guard'
   spec.add_development_dependency 'guard-bundler'
   spec.add_development_dependency 'guard-minitest'
@@ -87,6 +90,6 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency 'rake'
   # mocha が制約
   spec.add_development_dependency 'rubocop', '<= 0.58.2'
-  # v0.15.0 が出てる
-  spec.add_development_dependency 'simplecov', '~> 0.16.1'
+
+  spec.add_development_dependency 'simplecov' #, '~> 0.16.1'
 end

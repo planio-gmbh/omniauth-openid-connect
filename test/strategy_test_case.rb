@@ -1,3 +1,7 @@
+# -*- coding:utf-8 -*-
+
+# Mocha の使いすぎは、テストがテストでなくなる。控え目に!
+
 class StrategyTestCase < MiniTest::Test
   # rack app
   class DummyApp
@@ -18,7 +22,7 @@ class StrategyTestCase < MiniTest::Test
   end
 
   def client
-    strategy.client
+    strategy.client()
   end
 
   def user_info
@@ -39,12 +43,12 @@ class StrategyTestCase < MiniTest::Test
 
   def request
     # stub Rack::Request
-    @request ||= stub('Request').tap do |request|
+    @request ||= Rack::Request.new({}).tap do |request|
       request.stubs(:params).returns({})
       request.stubs(:cookies).returns({})
-      request.stubs(:env).returns({})
-      request.stubs(:scheme).returns({})
-      request.stubs(:ssl?).returns(false)
+      #request.stubs(:env).returns({})     set by ctor
+      request.stubs(:scheme).returns('http')
+      #request.stubs(:ssl?).returns(false)
     end
   end
 

@@ -50,6 +50,21 @@ module OmniAuth
         return JSON::JWK.new json
       end
     end
-  
+
+
+    # access token を id_token によって 検証 (validation) する.
+    def self.verify_access_token(access_token, decoded_id_token, raw_id_token)
+      raise TypeError if !access_token.is_a?(String)
+      raise TypeError if !raw_id_token.is_a?(String)
+
+      jwt = JSON::JWT.decode raw_id_token, :skip_verification
+      hash_length = jwt.alg[2, 3].to_i
+      if decoded_id_token.at_hash !=
+                             left_half_hash_of(access_token, hash_length)
+        raise "invalid access_token!!: id_token.at_hash, left_half_hash = " +
+              decoded_id_token.at_hash + ", " + left_half_hash_of(access_token, hash_length)
+      end
+    end
+    
   end # module OpenIDConnect
 end
