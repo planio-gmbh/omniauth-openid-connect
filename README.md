@@ -45,11 +45,20 @@ For the full low down on OpenID Connect, please check out
 
 ## Installation
 
+This repository is a forked version. You can install gem file locally.
 Clone this repository:
 
     $ git clone https://github.com/netsphere-labs/omniauth-openid-connect.git
+    $ cd omniauth-openid-connect
+    $ git checkout v0.8.1.pre
     $ rake build
+    omniauth-openid-connect 0.8.1.pre built to pkg/omniauth-openid-connect-0.8.1.pre.gem.
+    $ su
     # rake install:local
+    omniauth-openid-connect (0.8.1.pre) installed.
+    # gem list omniauth-openid-connect
+    omniauth-openid-connect (0.8.1.pre)
+
 
 
 Gemfile:
