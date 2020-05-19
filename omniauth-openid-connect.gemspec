@@ -57,7 +57,8 @@ Gem::Specification.new do |spec|
   
   spec.add_dependency 'omniauth', '~> 1.9'   # omniauth-oauth2 に合わせる
   spec.add_dependency 'openid_connect', '~> 1.1'
-  spec.add_dependency 'json-jwt', '>= 1.5.0'
+  # CVE-2019-18848 fix.
+  spec.add_dependency 'json-jwt', '>= 1.11.0'
 
   # A replacement for the URI implementation that is part of Ruby's standard
   # library.
