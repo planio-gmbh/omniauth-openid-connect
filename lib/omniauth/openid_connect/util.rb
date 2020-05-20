@@ -17,14 +17,37 @@ module OmniAuth
       end
     end
 
-  
-    # @param [String or IO] key  PEM形式の証明書データ
+
+    def self.openssl_bn str
+      str += '=' * (4 - str.size % 4) if str.size % 4 != 0
+      decoded = Base64.urlsafe_decode64 str
+      unpacked = decoded.unpack('H*').first
+      return OpenSSL::BN.new(unpacked, 16)
+    end
+
+    
+    # @param [String or IO] key_or_hash  PEM形式の証明書データ
     # @raise [OpenSSL::X509::CertificateError] 証明書のフォーマットが不正
     def self.parse_x509_key key_or_hash, kid
       if key_or_hash.is_a?(Hash)
-        key_or_hash.each do |key, pem|
-          if kid == key
-            return OpenSSL::X509::Certificate.new(pem).public_key
+        if key_or_hash['keys']
+          # https://www.googleapis.com/oauth2/v3/certs の形式
+          key_or_hash['keys'].each do |rsa_param|
+            if rsa_param['kid'] == kid
+              modulus = openssl_bn rsa_param['n']
+              exponent = openssl_bn rsa_param['e']
+              sequence = OpenSSL::ASN1::Sequence.new(
+                [OpenSSL::ASN1::Integer.new(modulus),
+                 OpenSSL::ASN1::Integer.new(exponent)])
+              return OpenSSL::PKey::RSA.new(sequence.to_der)              
+            end
+          end
+        else
+          # https://www.googleapis.com/oauth2/v1/certs の形式
+          key_or_hash.each do |key, pem|
+            if key == kid
+              return OpenSSL::X509::Certificate.new(pem).public_key
+            end
           end
         end
         raise ArgumentError, "missing kid: #{kid}"
