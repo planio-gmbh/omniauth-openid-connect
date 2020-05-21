@@ -387,15 +387,13 @@ module OmniAuth
       end
 
 
-      # @return [JSON::JWK::Set] IdP's RSA public keys. NOT client's.
+      # @return [JSON::JWK::Set or JSON::JWK] IdP's RSA public keys. NOT client's.
       def public_key(kid = nil)
         # [Security issue] Do not call key_or_secret() here.
         
         if options.discovery
           # ここで jwks_uri へのアクセスが発生.
           config().jwks # setのままでOK
-          # key = config.jwks().select{|k| k["kid"] == kid}.try(:first)
-          # JSON::JWK.new(key).to_key
         else
           if options.client_jwk_signing_key
             return OmniAuth::OpenIDConnect.parse_jwk_key(
