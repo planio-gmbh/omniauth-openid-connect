@@ -10,7 +10,7 @@ module OmniAuth
       end
 
       def config(issuer)
-        raise TypeError if !issuer
+        raise TypeError if !issuer.is_a?(String)
         
         @idp_config[issuer] ||=
           ::OpenIDConnect::Discovery::Provider::Config.discover!(issuer)

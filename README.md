@@ -36,11 +36,11 @@ For the full low down on OpenID Connect, please check out
 |--------------|-----------------|----------------|
 |Google        |Google Identity Platform |[Developer's Guide](https://developers.google.com/identity/protocols/OpenIDConnect)  |
 |Yahoo! JAPAN  |Yahoo! ID連携 v2          |[Developer's Guide](https://developer.yahoo.co.jp/yconnect/v2/) |
-|Microsoft     |Azure Active Directory   |[Understand the OpenID Connect authentication code flow in Azure AD](https://docs.microsoft.com/en-us/azure/active-directory/develop/active-directory-protocols-openid-connect-code) |
+|Microsoft     |Azure Active Directory (v1), Microsoft ID Platform (v2)  |[Understand the OpenID Connect authentication code flow in Azure AD](https://docs.microsoft.com/en-us/azure/active-directory/develop/active-directory-v2-protocols) |
 |nov           |OpenID Connect OP sample |[Sample Application](https://gitlab.com/horiq/openid_connect_sample) |
 |Red Hat       |Keycloak           |[Securing Applications](https://www.keycloak.org/docs/latest/securing_apps/)|
 
-(2017-09) As of now, Azure AD doesn't meet the OpenID Connect specification. You must set `true` of  `:send_client_secret_to_token_endpoint` option.
+<s>(2017-09) As of now, Azure AD doesn't meet the OpenID Connect specification. You must set `true` of  `:send_client_secret_to_token_endpoint` option.</s> (2020.6) OmniAuth::OpenIDConnect v0.8 has configured automatically for Azure AD. Simply set the option `discovery:true`.
 
 
 
@@ -100,7 +100,7 @@ See https://www.nslabs.jp/omniauth-openid-connect.rhtml
 
 | Field                        | Description                         | Required | Default                           |
 |------------------------------|-------------------------------------|----------|-----------------------------------|
-| name                         | Arbitrary string to identify connection and identify it from other openid_connect providers <br />:my_idp                                                                                                                       | no       | String: openid_connect                                                  |
+| name     [Symbol or String]     | Arbitrary string to identify connection and identify it from other openid_connect providers <br />`:my_idp`                            | Yes       | `'openid_connect'`                                                  |
 | issuer                       | Root url for the authorization server    <br />https://myprovider.com                                                                                                                     | yes                                 |                               |
 | discovery                    | Should OpenID discovery be used. This is recommended if the IDP provides a discovery endpoint. See client config for how to manually enter discovered values. <br />one of: true, false | no       | false                                                   |
 | client_auth_method           | Which authentication method to use to authenticate your app with the authorization server <br />"basic", "jwks"                                                                    | no       | Sym: basic                                                  |

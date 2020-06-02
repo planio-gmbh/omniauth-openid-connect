@@ -146,12 +146,20 @@ module OmniAuth
       option :send_scope_to_token_endpoint, false
 
       # token_endpoint へのリクエスト.
-      # default 値: :basic
+      # One of...
+      #   :basic           "client_secret_basic": The client uses HTTP Basic.
+      #   :jwt_bearer
+      #   :saml2_bearer
+      #   :mtls
+      #   :secret_in_body  "client_secret_post": The client uses the HTTP POST
+      #                    parameters.
+      #   n/a              "none": The client is a public client as defined in
+      #                    OAuth 2.0, Section 2.1, and does not have a client
+      #                    secret.
+      # default value is :basic
+      # See Rack::OAuth2::Client
+      # RFC 8414 `token_endpoint_auth_methods_supported` のなかから選ぶ.
       option :client_auth_method
-
-      # Azure ADは, token_endpoint にも client_id, client_secret を送信しなけ
-      # れば失敗する
-      option :send_client_secret_to_token_endpoint, false
 
       option :post_logout_redirect_uri
 
@@ -236,20 +244,15 @@ module OmniAuth
         super
         
         @issuer = if options.issuer
-          options.issuer
-        else
-          client_options.scheme + '://' + client_options.host +
-                (client_options.port ? client_options.port.to_s : '')
-        end
+                    options.issuer
+                  else
+                    client_options.scheme + '://' + client_options.host +
+                      (client_options.port ? client_options.port.to_s : '')
+                  end
         unless (uri = URI.parse(@issuer)) &&
                ['http', 'https'].include?(uri.scheme)
           raise ArgumentError, "Invalid issuer URI scheme"
         end
-
-        # OpenID Connect Discovery 1.0 の OpenID Provider Issuer Discovery
-        # => 実用的ではない.
-        # 引数は identifier 一つだけ.
-        #::OpenIDConnect::Discovery::Provider.discover!(resource).issuer
 
         # これは discover!の前に設定.
         if client_options.scheme == "http"
@@ -272,9 +275,6 @@ module OmniAuth
 
       # @override
       def request_phase
-        #options.issuer = issuer if options.issuer.to_s.empty?
-        #discover! ここで呼び出してはいけない. discovery: false対応.
-
         # For CVE-2015-9284
         raise SecurityError, "'POST' only" if request.request_method != "POST"
         
@@ -430,6 +430,14 @@ module OmniAuth
         if config().respond_to?(:end_session_endpoint)
           options.end_session_endpoint = config().end_session_endpoint
         end
+
+        if config().respond_to?(:token_endpoint_auth_methods_supported)
+          if config().token_endpoint_auth_methods_supported.include?('client_secret_basic')
+            options.client_auth_method = :basic
+          elsif config().token_endpoint_auth_methods_supported.include?('client_secret_post')
+            options.client_auth_method = :secret_in_body
+          end
+        end
       end
 
 
@@ -470,12 +478,6 @@ module OmniAuth
           scope: (options.scope if options.send_scope_to_token_endpoint),
           client_auth_method: options.client_auth_method
         }
-        if options.send_client_secret_to_token_endpoint
-          opts.merge!(
-            client_id: client_options.identifier, # Azure AD only.
-            client_secret: client_options.secret
-          )
-        end
         @access_token = client.access_token! opts
         raise TypeError, "internal error" if !@access_token.is_a?(Rack::OAuth2::AccessToken)
 
