@@ -174,16 +174,20 @@ module OmniAuth
       def test_option_acr_values
         strategy.options.client_options[:host] = 'foobar.com'
 
-        refute_match /acr_values=/, strategy.authorize_uri, 'URI must not contain acr_values'  #/
+        refute_includes strategy.authorize_params.keys, :acr_values,
+                        'URI must not contain acr_values'  #/
 
         strategy.options.acr_values = 'urn:some:acr:values:value'
-        assert_match /acr_values=/, strategy.authorize_uri, 'URI must contain acr_values'
+        assert_includes strategy.authorize_params.keys, :acr_values,
+                        'URI must contain acr_values'
       end
 
+      
       def test_option_custom_attributes
         strategy.options.client_options[:host] = 'foobar.com'
         strategy.options.extra_authorize_params = {resource: 'xyz'}
-        assert_match /resource=xyz/, strategy.authorize_uri, 'URI must contain custom params'
+        assert_match 'xyz', strategy.authorize_params[:resource],
+                     'URI must contain custom params'
       end
 
       
@@ -428,11 +432,10 @@ module OmniAuth
 
         strategy.call!('rack.session' => { 'omniauth.state' => state,
                                            'omniauth.nonce' => nonce })
+        strategy.expects(:fail!)
         result = strategy.callback_phase
         assert_kind_of Array, result
         assert_equal 302, result.first, 'Expecting redirect to /callback/failure'
-
-        strategy.expects(:fail!)
       end
 
       def test_callback_phase_without_code
@@ -687,7 +690,8 @@ module OmniAuth
       def test_dynamic_state
         # Stub request parameters
         request.stubs(:path_info).returns('')
-        strategy.call!('rack.session' => { }, QUERY_STRING: { state: 'abc', client_id: '123' } )
+        strategy.call!('rack.session' => { },
+                       Rack::QUERY_STRING => { state: 'abc', client_id: '123' } )
 
         assert_kind_of Array, result
         assert_equal 302, result.first, 'Expecting redirect to /auth/failure'

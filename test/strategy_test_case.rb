@@ -43,13 +43,14 @@ class StrategyTestCase < MiniTest::Test
 
   def request
     # stub Rack::Request
-    @request ||= Rack::Request.new({}).tap do |request|
-      request.stubs(:params).returns({})
-      request.stubs(:cookies).returns({})
+    @request ||= Rack::Request.new({
+                   'rack.input' => '',
+                   'rack.url_scheme' => 'http'})
+      #request.stubs(:params).returns({})
+      #request.stubs(:cookies).returns({})
       #request.stubs(:env).returns({})     set by ctor
-      request.stubs(:scheme).returns('http')
+      #request.stubs(:scheme).returns('http')
       #request.stubs(:ssl?).returns(false)
-    end
   end
 
   def strategy
