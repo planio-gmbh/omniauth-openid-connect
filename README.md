@@ -1,14 +1,14 @@
 
 # OmniAuth::OpenIDConnect renewed
 
-Authentication strategy using OpenID Connect for OmniAuth. This package replaces 'omniauth-google-oauth2', 'omniauth-yahoojp', 'omniauth_openid_connect', 'omniauth-azure-oauth2', 'omniauth-line' and 'omniauth-line-openid-connect'.
+Authentication strategy using OpenID Connect for OmniAuth. 
 
 [![Maintainability](https://api.codeclimate.com/v1/badges/15feb4c312e95c116ede/maintainability)](https://codeclimate.com/github/netsphere-labs/omniauth-openid-connect/maintainability)
 [![Test Coverage](https://api.codeclimate.com/v1/badges/15feb4c312e95c116ede/test_coverage)](https://codeclimate.com/github/netsphere-labs/omniauth-openid-connect/test_coverage)
 [![Build Status](https://travis-ci.com/netsphere-labs/omniauth-openid-connect.svg?branch=master)](https://travis-ci.com/netsphere-labs/omniauth-openid-connect)
 
 
-The original is [jjbohn/omniauth-openid-connect](https://github.com/jjbohn/omniauth-openid-connect). This repository is a integration of modifications scattered in various places. [Shopify/omniauth-identity](https://github.com/Shopify/omniauth-identity), [patatoid/omniauth-openid-reconnect](https://github.com/patatoid/omniauth-openid-reconnect) and [m0n9oose/omniauth_openid_connect](https://github.com/m0n9oose/omniauth_openid_connect).
+The original is [jjbohn/omniauth-openid-connect](https://github.com/jjbohn/omniauth-openid-connect). I gathered the changes that were scattered in many places and integrated them here. In particular, [Shopify/omniauth-identity](https://github.com/Shopify/omniauth-identity), [patatoid/omniauth-openid-reconnect](https://github.com/patatoid/omniauth-openid-reconnect) and [m0n9oose/omniauth_openid_connect](https://github.com/m0n9oose/omniauth_openid_connect). And this package is the successor to the following: 'omniauth-google-oauth2', 'omniauth-yahoojp', 'omniauth-azure-oauth2', 'omniauth-azure-adv2', 'omniauth-line' and 'omniauth-line-openid-connect'.
 
 **Important:** OmniAuth v1.9.1 and earlier is vulnerable to Cross-Site Request Forgery. Application developers need to avoid this vulnerability. See [CVE-2015-9284](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2015-9284), [Resolving CVE 2015 9284 · omniauth/omniauth Wiki](https://github.com/omniauth/omniauth/wiki/Resolving-CVE-2015-9284).
 
@@ -16,17 +16,15 @@ The original is [jjbohn/omniauth-openid-connect](https://github.com/jjbohn/omnia
 
 ## OpenID Connect
 
-If OAuth is simply used for authentication, there is a large security vulnerability. So, each company independently responded.
+If you use OAuth 2.0 for *authentication* purposes, it will cause a huge security vulnerability. The OAuth 2.0 is a mechanism for *authorization* and does not identify who the access token belongs to. Therefore, there is a risk of token hijacking. Each company has created its countermeasures.
 
-OpenID Connect is a standardized, simple identity layer on top of the OAuth 2.0 protocol. 
-By using OpenID Connect, we don't need to implement variety extensions of each company.
+OpenID Connect is a standardized, simple identity layer on top of the OAuth 2.0 protocol. By using OpenID Connect, we don't need to implement variety extensions of each company.
 
 OpenID Connect uses a mechanism `id_token`. In addition to `access_token`, the authentication server and clients exchange 
 the `id_token`, and verifying the signature and nonce makes preventing spoofing.
 
 There is no technical continuity with OpenID 2.0 and OpenID Connect. Only names are similar.
-For the full low down on OpenID Connect, please check out
-[OpenID Connect Core 1.0](https://openid.net/specs/openid-connect-core-1_0.html).
+For more information on OpenID Connect, see [OpenID Connect Core 1.0](https://openid.net/specs/openid-connect-core-1_0.html).
 
 
 
@@ -34,10 +32,10 @@ For the full low down on OpenID Connect, please check out
 
 |Organization  |Implementation   |Note            |
 |--------------|-----------------|----------------|
-|Google        |Google Identity Platform |[Developer's Guide](https://developers.google.com/identity/protocols/OpenIDConnect)  |
+|Google        |Google Identity Platform |[Developer's Guide](https://developers.google.com/identity/protocols/oauth2/openid-connect)  |
 |Yahoo! JAPAN  |Yahoo! ID連携 v2          |[Developer's Guide](https://developer.yahoo.co.jp/yconnect/v2/) |
 |Microsoft     |Azure Active Directory (v1), Microsoft ID Platform (v2)  |[Understand the OpenID Connect authentication code flow in Azure AD](https://docs.microsoft.com/en-us/azure/active-directory/develop/active-directory-v2-protocols) |
-|nov           |OpenID Connect OP sample |[Sample Application](https://gitlab.com/horiq/openid_connect_sample) |
+|nov           |OpenID Connect OP sample |[Sample Application](https://github.com/netsphere-labs/openid_connect_sample) |
 |Red Hat       |Keycloak           |[Securing Applications](https://www.keycloak.org/docs/latest/securing_apps/)|
 
 <s>(2017-09) As of now, Azure AD doesn't meet the OpenID Connect specification. You must set `true` of  `:send_client_secret_to_token_endpoint` option.</s> (2020.6) OmniAuth::OpenIDConnect v0.8 has configured automatically for Azure AD. Simply set the option `discovery:true`.
