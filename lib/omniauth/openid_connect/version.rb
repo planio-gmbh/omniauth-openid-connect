@@ -2,6 +2,6 @@
 
 module OmniAuth
   module OpenIDConnect
-    VERSION = '0.8.1.pre'
+    VERSION = '0.8.2'
   end
 end
