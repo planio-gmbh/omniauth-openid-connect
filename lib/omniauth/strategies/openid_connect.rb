@@ -29,6 +29,23 @@ module OmniAuth
       # [REQUIRED] こちらが route URL の provider 名になる
       option :name, 'openid_connect'
 
+      # instead of hard coding client_options in your omniauth initializer, you
+      # may pass a class that determines these values at runtime to support
+      # multiple tenants / different openid connect providers.
+      #
+      # The tenant provider is initialized with this strategy and must provide
+      # client_options, issuer and scope methods returning the respective
+      # configuration values.
+      #
+      # Further, it must provide an info method that implements any mapping
+      # necessary to turn the raw_attributes data from the oidc provider into
+      # an application specific hash of user attributes (i.e., for creating
+      # user accounts on the fly).
+      option :tenant_provider, nil
+
+      # set a global redirect_uri when using a tenant_provider
+      option :redirect_uri, nil
+
       # OpenIDConnect::Client.new() に渡されるオプション.
       option(:client_options,
                 # Authentication Request: [REQUIRED] client_id
@@ -191,7 +208,11 @@ module OmniAuth
       end
 
       extra do
-        { raw_info: fix_user_info(user_info).raw_attributes }
+        raw_info = fix_user_info(user_info).raw_attributes
+        {
+          raw_info: raw_info,
+          tenant_info: tenant&.info(raw_info)
+        }
       end
 
       credentials do
@@ -208,6 +229,9 @@ module OmniAuth
         end
       end
 
+      def tenant
+        @tenant ||= options.tenant_provider&.new(self)
+      end
 
       def initialize(app, *args, &block)
         if args.last.is_a?(Hash)
@@ -241,8 +265,20 @@ module OmniAuth
       # @override
       # request_phase() と callback_phase() の開始前に呼び出される.
       def setup_phase
+        if tenant
+          options.issuer = tenant.issuer
+          if scope = tenant.scope
+            options.scope = scope
+          end
+
+          options.client_options = tenant.client_options
+          if uri = options.redirect_uri
+            options.client_options[:redirect_uri] ||= options.redirect_uri
+          end
+        end
+
         super
-        
+
         @issuer = if options.issuer
                     options.issuer
                   else
@@ -275,9 +311,6 @@ module OmniAuth
 
       # @override
       def request_phase
-        # For CVE-2015-9284
-        raise SecurityError, "'POST' only" if request.request_method != "POST"
-        
         # client() 内で client_options から OpenIDConnect::Client を構築.
         redirect client().authorization_uri(authorize_params)
       end
