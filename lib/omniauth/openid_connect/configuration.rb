@@ -2,6 +2,7 @@ require 'singleton'
 
 module OmniAuth
   module OpenIDConnect
+    # TODO thread safety?
     class Configuration
       include Singleton
 
@@ -10,11 +11,7 @@ module OmniAuth
       end
 
       def config(issuer)
-        raise TypeError if !issuer.is_a?(String)
-        
-        @idp_config[issuer] ||=
-          ::OpenIDConnect::Discovery::Provider::Config.discover!(issuer)
-        @idp_config[issuer]
+        @idp_config[issuer] ||= ::OpenIDConnect::Discovery::Provider::Config.discover!(issuer)
       end
     end
   end

@@ -297,8 +297,8 @@ module OmniAuth
         end
         discover! if options.discovery
 
-        if configured_response_type != 'code' &&
-           configured_response_type != 'id_token token'
+        # we have no use for the implicit flow, so disable it entirely
+        if configured_response_type != 'code' # && configured_response_type != 'id_token token'
           raise ArgumentError, "Invalid response_type"
         end
         if configured_response_type == 'id_token token'
@@ -377,7 +377,7 @@ module OmniAuth
       def end_session_uri
         return unless end_session_endpoint_is_valid?
 
-        end_session_uri = URI(client_options.end_session_endpoint)
+        end_session_uri = URI(options.end_session_endpoint)
         end_session_uri.query = encoded_post_logout_redirect_uri
         end_session_uri.to_s
       end
@@ -449,25 +449,26 @@ module OmniAuth
 
       def discover!
         raise "internal bug" if !options.discovery
+        config = self.config()
         
         # config() 内で, issuer を引数にして, 実際に discover! している.
-        client_options.authorization_endpoint = config().authorization_endpoint
-        client_options.token_endpoint = config().token_endpoint
-        client_options.userinfo_endpoint = config().userinfo_endpoint
+        client_options.authorization_endpoint = config.authorization_endpoint
+        client_options.token_endpoint = config.token_endpoint
+        client_options.userinfo_endpoint = config.userinfo_endpoint
         # OpenIDConnect::Discovery::Provider::Config::Response に expires_in は
         # ない.
         #client_options.expires_in = config().expires_in
 
         # client_options に jwks_uri, end_session_endpoint はない.
-        options.jwks_uri = config().jwks_uri
-        if config().respond_to?(:end_session_endpoint)
-          options.end_session_endpoint = config().end_session_endpoint
+        options.jwks_uri = config.jwks_uri
+        if config.respond_to?(:end_session_endpoint)
+          options.end_session_endpoint = config.end_session_endpoint
         end
 
-        if config().respond_to?(:token_endpoint_auth_methods_supported)
-          if config().token_endpoint_auth_methods_supported.include?('client_secret_basic')
+        if config.respond_to?(:token_endpoint_auth_methods_supported)
+          if config.token_endpoint_auth_methods_supported&.include?('client_secret_basic')
             options.client_auth_method = :basic
-          elsif config().token_endpoint_auth_methods_supported.include?('client_secret_post')
+          elsif config.token_endpoint_auth_methods_supported&.include?('client_secret_post')
             options.client_auth_method = :secret_in_body
           end
         end
@@ -597,8 +598,8 @@ module OmniAuth
       end
 
       def end_session_endpoint_is_valid?
-        client_options.end_session_endpoint &&
-          client_options.end_session_endpoint =~ URI::DEFAULT_PARSER.make_regexp
+        options.end_session_endpoint &&
+          options.end_session_endpoint =~ URI::DEFAULT_PARSER.make_regexp
       end
 
       def logout_path_pattern

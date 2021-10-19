@@ -1,3 +1,4 @@
+require 'byebug'
 # -*- coding:utf-8 -*-
 
 # Mocha の使いすぎは、テストがテストでなくなる。控え目に!
