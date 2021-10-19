@@ -25,7 +25,7 @@ module OmniAuth
       extend Forwardable
 
       def_delegator :request, :params
-      
+
       # [REQUIRED] こちらが route URL の provider 名になる
       option :name, 'openid_connect'
 
@@ -96,7 +96,7 @@ module OmniAuth
 
       ##############################
       # Authentication Request
-      
+
       # Authentication Request: [REQUIRED]
       # 'openid' は必須.
       # 加えて, OpenID Connect で定義: 'profile', 'email', 'address', 'phone',
@@ -131,11 +131,11 @@ module OmniAuth
       # Restrict user domain name.
       # See https://developers.google.com/identity/protocols/OpenIDConnect#hd-param
       option :hd, nil
-      
+
       # Authentication Request: [OPTIONAL]
       option :max_age
 
-      # not option, but by request.params 
+      # not option, but by request.params
       #option :ui_locales
       #option :id_token_hint
       #option :login_hint
@@ -423,7 +423,7 @@ module OmniAuth
       # @return [JSON::JWK::Set or JSON::JWK] IdP's RSA public keys. NOT client's.
       def public_key(kid = nil)
         # [Security issue] Do not call key_or_secret() here.
-        
+
         if options.discovery
           # ここで jwks_uri へのアクセスが発生.
           config().jwks # setのままでOK
@@ -450,7 +450,7 @@ module OmniAuth
       def discover!
         raise "internal bug" if !options.discovery
         config = self.config()
-        
+
         # config() 内で, issuer を引数にして, 実際に discover! している.
         client_options.authorization_endpoint = config.authorization_endpoint
         client_options.token_endpoint = config.token_endpoint
@@ -480,19 +480,19 @@ module OmniAuth
         @user_info ||= access_token.userinfo!
       end
 
-      # Google sends the string "true" as the value for the field 
+      # Google sends the string "true" as the value for the field
       # 'email_verified' while a boolean is expected.
       def fix_user_info(user_info)
         raise TypeError if !user_info
-        
+
         if user_info.email_verified.is_a? String
-          user_info.email_verified = 
+          user_info.email_verified =
                             (user_info.email_verified.casecmp("true") == 0)
         end
         #user_info.gender = nil # in case someone picks something else than male or female, we don't need it anyway
         user_info
       end
-      
+
 
       # callback_phase() から呼び出される.
       # @return [Rack::OAuth2::AccessToken] アクセストークン
@@ -534,7 +534,7 @@ module OmniAuth
       # public_key. On the other hand, you have to use public_key on Implicit
       # Flow.
       #def decode_id_token(id_token)
-           
+
       def client_options
         options.client_options
       end
@@ -571,7 +571,7 @@ module OmniAuth
       # RSAの場合は, 認証サーバの公開鍵を使う
       def key_or_secret header
         raise TypeError if !header
-        
+
         case header['alg'].to_sym
         when :HS256, :HS384, :HS512
           client_options.secret
@@ -588,7 +588,7 @@ module OmniAuth
       # [Security issue] Do not use params['redirect_uri']
       #def redirect_uri
 
-      
+
       def encoded_post_logout_redirect_uri
         return unless options.post_logout_redirect_uri
 
@@ -666,7 +666,7 @@ module OmniAuth
         # @param error_uri [OPTIONAL]
         def initialize(error, error_reason = nil, error_uri = nil)
           raise TypeError if !error
-          
+
           @error = error
           @error_reason = error_reason
           @error_uri = error_uri

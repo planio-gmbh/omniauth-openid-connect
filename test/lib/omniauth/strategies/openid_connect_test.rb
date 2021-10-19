@@ -18,7 +18,7 @@ module OmniAuth
         assert_equal false, strategy.options.discovery
       end
 
-      
+
       def test_uid
         assert_equal user_info.sub, strategy.uid
 
@@ -29,10 +29,10 @@ module OmniAuth
         assert_equal user_info.sub, strategy.uid
       end
 
-      
+
       ##################################################################
       # request phase
-      
+
       def test_request_phase
         expected_redirect = /^https:\/\/example\.com\/authorize\?client_id=1234&nonce=[\w]{32}&response_type=code&scope=openid&state=[\w]{32}$/
         strategy.options.issuer = 'https://example.com'
@@ -55,7 +55,7 @@ module OmniAuth
         strategy.expects(:redirect).with(regexp_matches(expected_redirect))
         strategy.request_phase
       end
-      
+
 
       def test_request_phase_with_discovery
         expected_redirect = /^https:\/\/example\.com\/authorization\?client_id=1234&nonce=\w{32}&response_type=code&scope=openid&state=\w{32}$/
@@ -82,7 +82,7 @@ module OmniAuth
         assert_nil strategy.options.end_session_endpoint
       end
 
-      
+
       def test_request_phase_with_response_mode
         expected_redirect = /^https:\/\/example\.com\/authorize\?client_id=1234&nonce=\w{32}&response_mode=form_post&response_type=id_token%20token&scope=openid&state=\w{32}$/
         strategy.options.issuer = 'example.com'
@@ -119,7 +119,7 @@ module OmniAuth
         strategy.request_phase
       end
 
-      
+
       def test_request_phase_with_prompt_and_id_token_hint
         expected_redirect = /^https:\/\/example\.com\/authorize\?client_id=1234&id_token_hint=insert_valid_id_token_here&nonce=[\w]{32}&prompt=login&response_type=code&scope=openid&state=[\w]{32}$/
         strategy.options.prompt = 'login'
@@ -138,7 +138,7 @@ module OmniAuth
         strategy.options.issuer = 'https://example.com'
         strategy.options.client_options.host = 'example.com'
         request.stubs(:request_method).returns('POST')
-                
+
         strategy.expects(:redirect).with(regexp_matches(expected_redirect))
         strategy.request_phase
       end
@@ -155,7 +155,7 @@ module OmniAuth
         strategy.request_phase
       end
 
-      
+
       def test_option_acr_values
         strategy.options.client_options[:host] = 'foobar.com'
 
@@ -167,7 +167,7 @@ module OmniAuth
                         'URI must contain acr_values'
       end
 
-      
+
       def test_option_custom_attributes
         strategy.options.client_options[:host] = 'foobar.com'
         strategy.options.extra_authorize_params = {resource: 'xyz'}
@@ -175,7 +175,7 @@ module OmniAuth
                      'URI must contain custom params'
       end
 
-      
+
       ##################################################################
       # logout phase
 
@@ -228,15 +228,15 @@ module OmniAuth
         strategy.other_phase
       end
 
-      
+
       ##################################################################
       # callback phase
 
       def callback_phase_sub session, params
-        
+
       end
 
-      
+
       # Authorization Code Flow では, params['code'] に authorization_code が来
       # る.
       # token_endpoint に対して request することで, access token を得る。access
@@ -253,7 +253,7 @@ module OmniAuth
         strategy.options.client_signing_alg = :RS256
         strategy.options.client_jwk_signing_key = JSON.parse(File.read('test/fixtures/jwks.json'))
         strategy.options.response_type = 'code'
-        
+
         id_token = ::OpenIDConnect::ResponseObject::IdToken.new(
           :sub => 'sub', :iss => 'a', :aud => 'a', :exp => 'a', :iat => 'a'
         ).tap do |id_token|
@@ -273,7 +273,7 @@ module OmniAuth
           #access_token.stubs(:expires_in)
           #access_token.stubs(:scope)
           :id_token => File.read('test/fixtures/id_token.txt') )
-        
+
         client().expects(:access_token!).at_least_once.returns(access_token)
         access_token.expects(:userinfo!).returns(user_info)
 
@@ -384,7 +384,7 @@ module OmniAuth
         strategy.callback_phase
       end
 
-      
+
       def test_callback_phase_with_error
         state = SecureRandom.hex(16)
         nonce = SecureRandom.hex(16)
@@ -397,7 +397,7 @@ module OmniAuth
         strategy.callback_phase
       end
 
-      
+
       # Authorization Code Flow
       def test_callback_phase_with_invalid_state
         code = SecureRandom.hex(16)
@@ -426,7 +426,7 @@ module OmniAuth
       end
 
 
-      # Implicit Flow 
+      # Implicit Flow
       def test_callback_phase_without_id_token
         state = SecureRandom.hex(16)
         nonce = SecureRandom.hex(16)
@@ -441,7 +441,7 @@ module OmniAuth
       end
 
 
-      # Implicit Flow 
+      # Implicit Flow
       def test_callback_phase_without_id_token_symbol
         state = SecureRandom.hex(16)
         nonce = SecureRandom.hex(16)
@@ -511,7 +511,7 @@ module OmniAuth
         strategy.callback_phase
       end
 
-  
+
       def test_callback_phase_with_socket_error
         code = SecureRandom.hex(16)
         state = SecureRandom.hex(16)
@@ -638,7 +638,7 @@ module OmniAuth
         strategy.options.issuer = 'http://example.com'
         strategy.options.client_options.host = 'example.com'
         request.stubs(:request_method).returns('POST')
-                
+
         strategy.expects(:redirect).with(regexp_matches(expected_redirect))
         strategy.request_phase
 
@@ -681,7 +681,7 @@ module OmniAuth
         strategy.options.issuer = 'example.com'
         strategy.options.client_options.host = 'example.com'
         request.stubs(:request_method).returns('POST')
-                
+
         strategy.expects(:redirect).with(regexp_matches(expected_redirect))
         strategy.request_phase
       end
@@ -736,7 +736,7 @@ module OmniAuth
         assert_kind_of JSON::JWK::Set, strategy.public_key
       end
 
-  
+
       def test_public_key_with_jwk
         strategy.options.client_signing_alg = :RS256
         jwks_str = File.read('./test/fixtures/jwks.json')
@@ -777,7 +777,7 @@ module OmniAuth
         ).tap do |id_token|
           id_token.stubs(:verify!).returns(true)
         end
-        
+
         request.stubs(:params).returns('state' => state, 'nounce' => nonce, 'id_token' => id_token)
         request.stubs(:path_info).returns('')
 
@@ -795,7 +795,7 @@ module OmniAuth
         assert auth_hash.key?('extra')
         assert auth_hash['extra'].key?('raw_info')
       end
-      
+
     end # of class OpenIDConnectTest
   end # module Strategies
 end # module OmniAuth
