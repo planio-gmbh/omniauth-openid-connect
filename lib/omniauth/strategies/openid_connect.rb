@@ -276,7 +276,7 @@ module OmniAuth
           end
 
           if uri = options.redirect_uri
-            options.client_options[:redirect_uri] ||= options.redirect_uri
+            options.client_options[:redirect_uri] ||= uri
           end
         end
 
@@ -304,11 +304,11 @@ module OmniAuth
         if configured_response_type != 'code' # && configured_response_type != 'id_token token'
           raise ArgumentError, "Invalid response_type"
         end
-        if configured_response_type == 'id_token token'
-          if client_options.secret
-            raise ArgumentError, "MUST NOT set client_secret on Implicit Flow"
-          end
-        end
+        #if configured_response_type == 'id_token token'
+        #  if client_options.secret
+        #    raise ArgumentError, "MUST NOT set client_secret on Implicit Flow"
+        #  end
+        #end
       end
 
 
