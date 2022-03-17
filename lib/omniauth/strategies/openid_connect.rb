@@ -271,7 +271,10 @@ module OmniAuth
             options.scope = scope
           end
 
-          options.client_options = tenant.client_options
+          if opts = tenant.client_options
+            options.client_options = opts.dup
+          end
+
           if uri = options.redirect_uri
             options.client_options[:redirect_uri] ||= options.redirect_uri
           end
