@@ -282,22 +282,6 @@ module OmniAuth
 
         super
 
-        @issuer = if options.issuer
-                    options.issuer
-                  else
-                    client_options.scheme + '://' + client_options.host +
-                      (client_options.port ? client_options.port.to_s : '')
-                  end
-        unless (uri = URI.parse(@issuer)) &&
-               ['http', 'https'].include?(uri.scheme)
-          raise ArgumentError, "Invalid issuer URI scheme"
-        end
-
-        # これは discover!の前に設定.
-        if client_options.scheme == "http"
-          WebFinger.url_builder = URI::HTTP
-          SWD.url_builder = URI::HTTP
-        end
         discover! if options.discovery
 
         # we have no use for the implicit flow, so disable it entirely
@@ -367,10 +351,29 @@ module OmniAuth
         if logout_path_pattern.match?(current_path)
           #options.issuer = issuer if options.issuer.to_s.empty?
           #discover!
-          setup_phase()  # issuer の設定と discover!
-          return redirect(end_session_uri) if end_session_uri
+          begin
+            setup_phase()  # issuer の設定と discover!
+            return redirect(end_session_uri) if end_session_uri
+          # handle potential errors thrown during setup
+          rescue ArgumentError
+            return [ 400, {}, ["Invalid Request"] ]
+          end
         end
         call_app!
+      end
+
+      # handle potential errors thrown during setup
+      def request_call
+        super
+      rescue ArgumentError
+        [ 400, {}, ["Invalid Request"] ]
+      end
+
+      # handle potential errors thrown during setup
+      def callback_call
+        super
+      rescue ArgumentError
+        [ 400, {}, ["Invalid Request"] ]
       end
 
       #def authorization_code  ... params.delete() しないといかん. Remove.
@@ -445,11 +448,6 @@ module OmniAuth
 
     private ##############################################
 
-      # @return [String] options.issuer または client_options からつくった
-      #                  issuer.
-      # 設定は setup_phase() 内で行う.
-      attr_reader :issuer
-
       def discover!
         raise "internal bug" if !options.discovery
         config = self.config()
@@ -475,6 +473,31 @@ module OmniAuth
             options.client_auth_method = :secret_in_body
           end
         end
+      end
+
+      def issuer
+        return @issuer if @issuer
+
+        issuer = if options.issuer
+                   options.issuer
+                 else
+                   "#{client_options.scheme}://#{client_options.host}#{":#{client_options.port}" if client_options.port}"
+                 end
+
+        uri = URI.parse(issuer)
+        unless ['http', 'https'].include?(uri.scheme)
+          raise ArgumentError, "Invalid issuer URI scheme: #{uri.scheme}"
+        end
+
+        # これは discover!の前に設定.
+        if uri.scheme == "http"
+          WebFinger.url_builder = URI::HTTP
+          SWD.url_builder = URI::HTTP
+        end
+
+        @issuer = issuer
+      rescue URI::InvalidUriError
+        raise ArgumentError, "Invalid issuer URI: #{@issuer}"
       end
 
 
