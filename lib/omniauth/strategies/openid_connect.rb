@@ -486,7 +486,10 @@ module OmniAuth
 
         uri = URI.parse(issuer)
         unless ['http', 'https'].include?(uri.scheme)
-          raise ArgumentError, "Invalid issuer URI scheme: #{uri.scheme}"
+          raise ArgumentError, "Invalid issuer URI scheme: #{issuer}"
+        end
+        unless uri.host.present?
+          raise ArgumentError, "Invalid issuer host: #{issuer}"
         end
 
         # これは discover!の前に設定.
