@@ -499,7 +499,7 @@ module OmniAuth
         end
 
         @issuer = issuer
-      rescue URI::InvalidUriError
+      rescue URI::InvalidURIError
         raise ArgumentError, "Invalid issuer URI: #{@issuer}"
       end
 
