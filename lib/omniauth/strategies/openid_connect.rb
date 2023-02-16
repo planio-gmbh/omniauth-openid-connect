@@ -266,17 +266,21 @@ module OmniAuth
       # request_phase() と callback_phase() の開始前に呼び出される.
       def setup_phase
         if tenant
-          options.issuer = tenant.issuer
-          if scope = tenant.scope
-            options.scope = scope
-          end
+          begin
+            options.issuer = tenant.issuer
+            if scope = tenant.scope
+              options.scope = scope
+            end
 
-          if opts = tenant.client_options
-            options.client_options = opts.dup
-          end
+            if opts = tenant.client_options
+              options.client_options = opts.dup
+            end
 
-          if uri = options.redirect_uri
-            options.client_options[:redirect_uri] ||= uri
+            if uri = options.redirect_uri
+              options.client_options[:redirect_uri] ||= uri
+            end
+          rescue
+            raise ArgumentError, "Invalid tenant"
           end
         end
 
@@ -342,6 +346,8 @@ module OmniAuth
         fail!(:timeout, e)
       rescue ::SocketError => e
         fail!(:failed_to_connect, e)
+      rescue ArgumentError => e
+        fail!(:token_verification_failed, e)
 #      rescue StandardError => e
 #        fail!(:token_verification_failed, e)
       end
